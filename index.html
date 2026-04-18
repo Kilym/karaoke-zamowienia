@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zamów Piosenkę - Karaoke</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #ffffff; margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
+        .container { background-color: #1e1e1e; padding: 30px 20px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 20px; position: relative; }
+        h1 { text-align: center; color: #bb86fc; margin: 0 0 10px 0; font-size: 26px; }
+        label { font-size: 14px; color: #b3b3b3; margin-bottom: -10px; display: block; font-weight: bold; }
+        input { width: 100%; padding: 15px; background: #2c2c2c; border: 2px solid #333; color: white; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; transition: border-color 0.2s; }
+        input:focus { border-color: #bb86fc; }
+        
+        /* Auto-podpowiedzi */
+        .suggestions-box { position: absolute; top: 100%; left: 0; right: 0; background: #2c2c2c; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); max-height: 250px; overflow-y: auto; z-index: 10; display: none; margin-top: 5px; border: 1px solid #444; }
+        .suggestion-item { padding: 12px 15px; border-bottom: 1px solid #3a3a3a; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:active { background: #3a3a3a; }
+        .hit-star { color: #f57f17; font-size: 18px; margin-left: 10px; }
+        
+        .input-group { position: relative; }
+        
+        button { background-color: #bb86fc; color: #000; font-weight: bold; font-size: 18px; padding: 16px; border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-top: 10px; }
+        button:active { background-color: #9965f4; transform: scale(0.98); }
+        button:disabled { background-color: #555; color: #888; cursor: not-allowed; }
+        
+        #loadingMsg, #successMsg { text-align: center; font-size: 14px; margin-top: -10px; }
+        #successMsg { color: #4CAF50; font-weight: bold; display: none; font-size: 16px; padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎤 Wybierz Piosenkę</h1>
+    <div id="loadingMsg" style="color: #bb86fc;">Pobieranie dostępnej bazy... ⏳</div>
+
+    <div id="successMsg">✅ Zamówienie wysłane!<br><span style="font-size:12px; font-weight:normal;">Zaraz przygotujemy Twój utwór.</span></div>
+
+    <label for="imie">Twoje Imię / Ekipa</label>
+    <input type="text" id="imie" placeholder="Wpisz imię..." autocomplete="off">
+
+    <div class="input-group">
+        <label for="szukaj" style="margin-bottom: 8px;">Tytuł Piosenki</label>
+        <input type="text" id="szukaj" placeholder="Zacznij wpisywać, by wyszukać..." autocomplete="off">
+        <div id="suggestions" class="suggestions-box"></div>
+    </div>
+
+    <button id="submitBtn" disabled>Wyślij Zamówienie 🚀</button>
+</div>
+
+<script>
+    // ====== KONFIGURACJA ======
+    const GIST_ID = 'c3050f88e17d6e1ec9e86bdbea6277e0'; 
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxJ1_L6d8lFs8scNEiqd0kSKwm9tooJWr2sPrPlOsne_8zFB3ZTuBUgidpz9E-uGJ5U/exec';
+    
+    let baza = [];
+    const szukajInput = document.getElementById('szukaj');
+    const imieInput = document.getElementById('imie');
+    const suggestionsBox = document.getElementById('suggestions');
+    const submitBtn = document.getElementById('submitBtn');
+    const loadingMsg = document.getElementById('loadingMsg');
+    const successMsg = document.getElementById('successMsg');
+
+    // Pobieranie Bazy Piosenek z Gista
+    async function loadBaza() {
+        try {
+            const response = await fetch(`https://api.github.com/gists/${GIST_ID}`);
+            const data = await response.json();
+            baza = JSON.parse(data.files['baza.json'].content);
+            loadingMsg.style.display = 'none';
+            checkInputs();
+        } catch (err) {
+            loadingMsg.innerHTML = "❌ Brak połączenia z bazą. Możesz wpisać tytuł ręcznie.";
+            loadingMsg.style.color = "#ff5252";
+            checkInputs();
+        }
+    }
+    loadBaza();
+
+    // Wyszukiwarka i podpowiedzi
+    szukajInput.addEventListener('input', () => {
+        const query = szukajInput.value.toLowerCase();
+        suggestionsBox.innerHTML = '';
+        
+        if (query.length < 2) {
+            suggestionsBox.style.display = 'none';
+            checkInputs();
+            return;
+        }
+
+        const matches = baza.filter(s => s.title.toLowerCase().includes(query)).slice(0, 8); // Max 8 wyników
+        
+        if (matches.length > 0) {
+            suggestionsBox.style.display = 'block';
+            matches.forEach(song => {
+                const div = document.createElement('div');
+                div.className = 'suggestion-item';
+                div.innerHTML = `<span>${song.title}</span> ${song.isHit ? '<span class="hit-star">⭐</span>' : ''}`;
+                
+                div.addEventListener('click', () => {
+                    szukajInput.value = song.title; // Autouzupełnienie
+                    suggestionsBox.style.display = 'none';
+                    checkInputs();
+                });
+                
+                suggestionsBox.appendChild(div);
+            });
+        } else {
+            suggestionsBox.style.display = 'none';
+        }
+        checkInputs();
+    });
+
+    // Ukryj podpowiedzi po kliknięciu gdzie indziej
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.input-group')) {
+            suggestionsBox.style.display = 'none';
+        }
+    });
+
+    // Walidacja - odblokuj przycisk gdy są wpisane dane
+    function checkInputs() {
+        if (imieInput.value.trim().length > 0 && szukajInput.value.trim().length > 0) {
+            submitBtn.disabled = false;
+        } else {
+            submitBtn.disabled = true;
+        }
+    }
+    imieInput.addEventListener('input', checkInputs);
+
+    // Wysyłanie formularza
+    submitBtn.addEventListener('click', async () => {
+        const imie = imieInput.value.trim();
+        const tytul = szukajInput.value.trim();
+        
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Wysyłanie... ⏳";
+
+        try {
+            // Wysłanie danych do mostu Google Apps Script
+            await fetch(WEB_APP_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Omija błędy zabezpieczeń przeglądarki przy wysyłaniu w ciemno
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ imie: imie, tytul: tytul })
+            });
+
+            // Pokaż sukces
+            successMsg.style.display = 'block';
+            submitBtn.style.display = 'none';
+            imieInput.style.display = 'none';
+            szukajInput.style.display = 'none';
+            document.querySelectorAll('label').forEach(l => l.style.display = 'none');
+            
+            // Reset po 5 sekundach dla kolejnego zamówienia
+            setTimeout(() => {
+                successMsg.style.display = 'none';
+                submitBtn.style.display = 'block';
+                imieInput.style.display = 'block';
+                szukajInput.style.display = 'block';
+                document.querySelectorAll('label').forEach(l => l.style.display = 'block');
+                szukajInput.value = '';
+                submitBtn.textContent = "Wyślij Zamówienie 🚀";
+                checkInputs();
+            }, 5000);
+
+        } catch (error) {
+            submitBtn.textContent = "❌ Błąd, spróbuj ponownie";
+            setTimeout(() => { submitBtn.textContent = "Wyślij Zamówienie 🚀"; checkInputs(); }, 3000);
+        }
+    });
+</script>
+</body>
+</html>
