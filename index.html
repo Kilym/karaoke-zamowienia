@@ -3,21 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zamów Piosenkę - Karaoke</title>
+    <title>Indeksowe Karaoke</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #ffffff; margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
         .container { background-color: #1e1e1e; padding: 30px 20px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 20px; position: relative; }
-        h1 { text-align: center; color: #bb86fc; margin: 0 0 10px 0; font-size: 26px; }
-        label { font-size: 14px; color: #b3b3b3; margin-bottom: -10px; display: block; font-weight: bold; }
-        input { width: 100%; padding: 15px; background: #2c2c2c; border: 2px solid #333; color: white; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; transition: border-color 0.2s; }
-        input:focus { border-color: #bb86fc; }
+        h1 { text-align: center; color: #bb86fc; margin: 0 0 5px 0; font-size: 26px; }
+        .schedule { text-align: center; color: #b3b3b3; font-size: 14px; margin-bottom: 5px; line-height: 1.5; }
         
-        /* Auto-podpowiedzi */
+        label { font-size: 14px; color: #b3b3b3; margin-bottom: -10px; display: block; font-weight: bold; }
+        input[type="text"] { width: 100%; padding: 15px; background: #2c2c2c; border: 2px solid #333; color: white; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; transition: border-color 0.2s; }
+        input[type="text"]:focus { border-color: #bb86fc; }
+        
+        .checkbox-container { display: flex; align-items: center; gap: 10px; background: #2c2c2c; padding: 15px; border-radius: 8px; border: 2px solid #333; cursor: pointer; margin-top: 5px; }
+        .checkbox-container label { margin: 0; cursor: pointer; font-size: 16px; color: white; flex: 1; }
+        .checkbox-container input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: #bb86fc; }
+
         .suggestions-box { position: absolute; top: 100%; left: 0; right: 0; background: #2c2c2c; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); max-height: 250px; overflow-y: auto; z-index: 10; display: none; margin-top: 5px; border: 1px solid #444; }
         .suggestion-item { padding: 12px 15px; border-bottom: 1px solid #3a3a3a; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .suggestion-item:last-child { border-bottom: none; }
         .suggestion-item:active { background: #3a3a3a; }
-        .hit-star { color: #f57f17; font-size: 18px; margin-left: 10px; }
         
         .input-group { position: relative; }
         
@@ -32,18 +36,31 @@
 <body>
 
 <div class="container">
-    <h1>🎤 Wybierz Piosenkę</h1>
+    <h1>KARAOKE INDEKS</h1>
+    <div class="schedule">
+        Thursday (20.00-1.00)<br>
+        Friday (21.00-2.00)<br>
+        Sunday (21.00-2.00)
+    </div>
+    
     <div id="loadingMsg" style="color: #bb86fc;">Pobieranie dostępnej bazy... ⏳</div>
-
     <div id="successMsg">✅ Zamówienie wysłane!<br><span style="font-size:12px; font-weight:normal;">Zaraz przygotujemy Twój utwór.</span></div>
 
-    <label for="imie">Twoje Imię / Ekipa</label>
+    <div class="input-group">
+        <label for="szukaj" style="margin-bottom: 8px;">Tytuł Piosenki/Song Title (Wymagane)</label>
+        <input type="text" id="szukaj" placeholder="Zacznij wpisywać..." autocomplete="off">
+        <div id="suggestions" class="suggestions-box"></div>
+    </div>
+
+    <label for="imie">Twoje lub Wasze imiona / Your names (Wymagane)</label>
     <input type="text" id="imie" placeholder="Wpisz imię..." autocomplete="off">
 
-    <div class="input-group">
-        <label for="szukaj" style="margin-bottom: 8px;">Tytuł Piosenki</label>
-        <input type="text" id="szukaj" placeholder="Zacznij wpisywać, by wyszukać..." autocomplete="off">
-        <div id="suggestions" class="suggestions-box"></div>
+    <label for="narodowosc">Narodowość (Opcjonalnie)</label>
+    <input type="text" id="narodowosc" placeholder="Np. Polska, UK, Spain..." autocomplete="off">
+
+    <div class="checkbox-container" onclick="document.getElementById('urodziny').click();">
+        <label for="urodziny">Mam dzisiaj urodziny! 🎂</label>
+        <input type="checkbox" id="urodziny" onclick="event.stopPropagation();">
     </div>
 
     <button id="submitBtn" disabled>Wyślij Zamówienie 🚀</button>
@@ -51,12 +68,14 @@
 
 <script>
     // ====== KONFIGURACJA ======
-    const GIST_ID = 'c3050f88e17d6e1ec9e86bdbea6277e0'; 
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxJ1_L6d8lFs8scNEiqd0kSKwm9tooJWr2sPrPlOsne_8zFB3ZTuBUgidpz9E-uGJ5U/exec';
+    const GIST_ID = 'TUTAJ_ID_GISTA'; 
+    const WEB_APP_URL = 'TUTAJ_URL_GOOGLE_APPS_SCRIPT';
     
     let baza = [];
     const szukajInput = document.getElementById('szukaj');
     const imieInput = document.getElementById('imie');
+    const narodowoscInput = document.getElementById('narodowosc');
+    const urodzinyCheck = document.getElementById('urodziny');
     const suggestionsBox = document.getElementById('suggestions');
     const submitBtn = document.getElementById('submitBtn');
     const loadingMsg = document.getElementById('loadingMsg');
@@ -71,7 +90,7 @@
             loadingMsg.style.display = 'none';
             checkInputs();
         } catch (err) {
-            loadingMsg.innerHTML = "❌ Brak połączenia z bazą. Możesz wpisać tytuł ręcznie.";
+            loadingMsg.innerHTML = "❌ Brak połączenia z bazą. Wpisz tytuł ręcznie.";
             loadingMsg.style.color = "#ff5252";
             checkInputs();
         }
@@ -89,17 +108,17 @@
             return;
         }
 
-        const matches = baza.filter(s => s.title.toLowerCase().includes(query)).slice(0, 8); // Max 8 wyników
+        const matches = baza.filter(s => s.title.toLowerCase().includes(query)).slice(0, 8);
         
         if (matches.length > 0) {
             suggestionsBox.style.display = 'block';
             matches.forEach(song => {
                 const div = document.createElement('div');
                 div.className = 'suggestion-item';
-                div.innerHTML = `<span>${song.title}</span> ${song.isHit ? '<span class="hit-star">⭐</span>' : ''}`;
+                div.innerHTML = `<span>${song.title}</span>`;
                 
                 div.addEventListener('click', () => {
-                    szukajInput.value = song.title; // Autouzupełnienie
+                    szukajInput.value = song.title;
                     suggestionsBox.style.display = 'none';
                     checkInputs();
                 });
@@ -112,14 +131,11 @@
         checkInputs();
     });
 
-    // Ukryj podpowiedzi po kliknięciu gdzie indziej
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('.input-group')) {
-            suggestionsBox.style.display = 'none';
-        }
+        if (!e.target.closest('.input-group')) suggestionsBox.style.display = 'none';
     });
 
-    // Walidacja - odblokuj przycisk gdy są wpisane dane
+    // Walidacja (Imię i Tytuł wymagane)
     function checkInputs() {
         if (imieInput.value.trim().length > 0 && szukajInput.value.trim().length > 0) {
             submitBtn.disabled = false;
@@ -129,38 +145,38 @@
     }
     imieInput.addEventListener('input', checkInputs);
 
-    // Wysyłanie formularza
+    // Wysyłanie
     submitBtn.addEventListener('click', async () => {
-        const imie = imieInput.value.trim();
-        const tytul = szukajInput.value.trim();
-        
         submitBtn.disabled = true;
         submitBtn.textContent = "Wysyłanie... ⏳";
 
         try {
-            // Wysłanie danych do mostu Google Apps Script
             await fetch(WEB_APP_URL, {
                 method: 'POST',
-                mode: 'no-cors', // Omija błędy zabezpieczeń przeglądarki przy wysyłaniu w ciemno
+                mode: 'no-cors', 
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({ imie: imie, tytul: tytul })
+                body: new URLSearchParams({ 
+                    tytul: szukajInput.value.trim(),
+                    imie: imieInput.value.trim(), 
+                    narodowosc: narodowoscInput.value.trim(),
+                    urodziny: urodzinyCheck.checked
+                })
             });
 
-            // Pokaż sukces
+            // Reset UI
             successMsg.style.display = 'block';
             submitBtn.style.display = 'none';
-            imieInput.style.display = 'none';
-            szukajInput.style.display = 'none';
-            document.querySelectorAll('label').forEach(l => l.style.display = 'none');
+            document.querySelectorAll('input').forEach(i => i.parentElement.style.display = 'none');
             
-            // Reset po 5 sekundach dla kolejnego zamówienia
             setTimeout(() => {
                 successMsg.style.display = 'none';
                 submitBtn.style.display = 'block';
-                imieInput.style.display = 'block';
-                szukajInput.style.display = 'block';
-                document.querySelectorAll('label').forEach(l => l.style.display = 'block');
+                document.querySelectorAll('input').forEach(i => i.parentElement.style.display = 'block');
                 szukajInput.value = '';
+                imieInput.value = '';
+                narodowoscInput.value = '';
+                urodzinyCheck.checked = false;
+                document.querySelector('.checkbox-container').style.display = 'flex';
                 submitBtn.textContent = "Wyślij Zamówienie 🚀";
                 checkInputs();
             }, 5000);
