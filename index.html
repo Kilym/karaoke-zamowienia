@@ -61,8 +61,13 @@
         </div>
 
         <div class="input-group">
-            <label for="narodowosc">Narodowość (Opcjonalnie)</label>
+            <label for="narodowosc">Narodowość / Nationality (Opcjonalnie)</label>
             <input type="text" id="narodowosc" placeholder="Np. Polska, UK, Spain..." autocomplete="off">
+        </div>
+
+        <div class="input-group">
+            <label for="kod">Kod Fast Pass / VIP Code (Opcjonalnie)</label>
+            <input type="text" id="kod" placeholder="Wpisz 6-znakowy kod" maxlength="6" style="text-transform: uppercase;" autocomplete="off">
         </div>
 
         <div class="checkbox-container" onclick="document.getElementById('urodziny').click();">
@@ -83,6 +88,7 @@
     const szukajInput = document.getElementById('szukaj');
     const imieInput = document.getElementById('imie');
     const narodowoscInput = document.getElementById('narodowosc');
+    const kodInput = document.getElementById('kod');
     const urodzinyCheck = document.getElementById('urodziny');
     const suggestionsBox = document.getElementById('suggestions');
     const submitBtn = document.getElementById('submitBtn');
@@ -164,11 +170,11 @@
                     tytul: szukajInput.value.trim(),
                     imie: imieInput.value.trim(), 
                     narodowosc: narodowoscInput.value.trim(),
+                    kod: kodInput.value.trim().toUpperCase(), // Zmieniamy automatycznie na duże litery
                     urodziny: urodzinyCheck.checked
                 })
             });
 
-            // Nowy, bezpieczny reset UI
             successMsg.style.display = 'block';
             formContent.style.display = 'none';
             
@@ -178,6 +184,7 @@
                 szukajInput.value = '';
                 imieInput.value = '';
                 narodowoscInput.value = '';
+                kodInput.value = '';
                 urodzinyCheck.checked = false;
                 submitBtn.textContent = "Wyślij Zamówienie 🚀";
                 checkInputs();
