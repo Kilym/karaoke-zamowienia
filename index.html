@@ -38,10 +38,11 @@
 
         #ytGroup { display: none; background: rgba(255, 82, 82, 0.05); padding: 10px; border-radius: 8px; border: 1px dashed #ff5252; }
         
-        /* Zmodyfikowany przycisk YouTube */
+        /* Zmodyfikowany przycisk YouTube ze stanem wyłączonym */
         #searchYTHelper { margin: 0; padding: 0 16px; background: #ff0000; color: white; font-size: 16px; font-weight: bold; flex-shrink: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; border: none; }
-        #searchYTHelper:hover { background: #d50000; }
-        #searchYTHelper:active { transform: scale(0.95); }
+        #searchYTHelper:hover:not(:disabled) { background: #d50000; }
+        #searchYTHelper:active:not(:disabled) { transform: scale(0.95); }
+        #searchYTHelper:disabled { background: #555; color: #888; cursor: not-allowed; opacity: 0.7; }
     </style>
 </head>
 <body>
@@ -210,6 +211,15 @@
             }
         }
 
+        // NOWE: Zarządzanie aktywnością przycisku YT
+        if (isSelectedFromDb) {
+            searchYTHelper.disabled = true;
+            searchYTHelper.title = "Utwór z bazy - brak potrzeby wyszukiwania";
+        } else {
+            searchYTHelper.disabled = false;
+            searchYTHelper.title = "Szukaj utworu na YouTube";
+        }
+
         const ytLinkVal = ytLinkInput.value.trim();
         const hasValidYtLink = ytLinkVal.length > 0 && (ytLinkVal.includes('youtube.com') || ytLinkVal.includes('youtu.be'));
 
@@ -275,7 +285,7 @@
                 urodzinyCheck.checked = false;
                 isSelectedFromDb = false;
                 checkInputs();
-            }, 6000);
+            }, 8000); // Wydłużono czas wyświetlania komunikatu sukcesu do 8 sekund
 
         } catch (error) {
             submitBtn.textContent = "❌ Błąd, spróbuj ponownie";
