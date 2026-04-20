@@ -10,6 +10,11 @@
         h1 { text-align: center; color: #bb86fc; margin: 0 0 5px 0; font-size: 26px; }
         .schedule { text-align: center; color: #b3b3b3; font-size: 14px; margin-bottom: 5px; line-height: 1.5; }
         
+        /* Przełącznik Języków */
+        .lang-toggle { display: flex; justify-content: center; background: #2c2c2c; border-radius: 20px; padding: 4px; width: max-content; margin: 0 auto; margin-bottom: -10px; }
+        .lang-btn { background: transparent; border: none; color: #888; font-weight: bold; font-size: 14px; padding: 6px 16px; border-radius: 16px; cursor: pointer; transition: 0.3s; margin: 0; }
+        .lang-btn.active { background: #bb86fc; color: #000; box-shadow: 0 2px 8px rgba(187, 134, 252, 0.4); }
+
         label { font-size: 14px; color: #b3b3b3; margin-bottom: 8px; display: block; font-weight: bold; }
         input[type="text"] { width: 100%; padding: 15px; background: #2c2c2c; border: 2px solid #333; color: white; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; transition: border-color 0.2s; }
         input[type="text"]:focus { border-color: #bb86fc; }
@@ -31,14 +36,10 @@
         
         #loadingMsg, #successMsg { text-align: center; font-size: 14px; margin-top: -10px; }
         #successMsg { color: #4CAF50; display: none; font-size: 16px; padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; margin-bottom: 20px; }
-        
         #successSummary { margin-top: 12px; padding: 12px; background: rgba(0, 0, 0, 0.25); border-radius: 8px; color: #e0e0e0; font-size: 14px; text-align: left; line-height: 1.6; border: 1px solid rgba(76, 175, 80, 0.2); }
-
         #formContent { display: flex; flex-direction: column; gap: 15px; width: 100%; }
-
         #ytGroup { display: none; background: rgba(255, 82, 82, 0.05); padding: 10px; border-radius: 8px; border: 1px dashed #ff5252; }
         
-        /* Zmodyfikowany przycisk YouTube ze stanem wyłączonym */
         #searchYTHelper { margin: 0; padding: 0 16px; background: #ff0000; color: white; font-size: 16px; font-weight: bold; flex-shrink: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; border: none; }
         #searchYTHelper:hover:not(:disabled) { background: #d50000; }
         #searchYTHelper:active:not(:disabled) { transform: scale(0.95); }
@@ -48,63 +49,171 @@
 <body>
 
 <div class="container">
-    <h1>KARAOKE INDEKS</h1>
-    <div class="schedule">
-        Thursday (20.00-1.00)<br>
-        Friday (21.00-2.00)<br>
-        Sunday (21.00-2.00)
+    <div class="lang-toggle">
+        <button id="btnPl" class="lang-btn active" onclick="setLanguage('pl')">PL</button>
+        <button id="btnEn" class="lang-btn" onclick="setLanguage('en')">EN</button>
+    </div>
+
+    <h1 id="txtTitle">KARAOKE INDEKS</h1>
+    <div class="schedule" id="txtSchedule">
+        Czwartek (20.00-1.00)<br>Piątek (21.00-2.00)<br>Niedziela (21.00-2.00)
     </div>
     
     <div id="loadingMsg" style="color: #bb86fc;">Pobieranie dostępnej bazy... ⏳</div>
     
     <div id="successMsg">
-        <strong style="font-size: 18px;">✅ Zamówienie wysłane!</strong><br>
-        <span style="font-size:13px; color: #81c784;">Zaraz przygotujemy Twój utwór.</span>
-        <div id="successSummary">
-            </div>
+        <strong style="font-size: 18px;" id="txtSuccessTitle">✅ Zamówienie wysłane!</strong><br>
+        <span style="font-size:13px; color: #81c784;" id="txtSuccessSub">Zaraz przygotujemy Twój utwór.</span>
+        <div id="successSummary"></div>
     </div>
 
     <div id="formContent">
         <div class="input-group">
-            <label for="szukaj">Tytuł Piosenki / Song Title (Wymagane)</label>
+            <label for="szukaj" id="lblSzukaj">Tytuł Piosenki (Wymagane)</label>
             <div style="display: flex; gap: 8px;">
                 <input type="text" id="szukaj" placeholder="Zacznij wpisywać..." autocomplete="off" style="flex: 1;">
                 <button type="button" id="searchYTHelper" title="Szukaj utworu na YouTube">YT 🔍</button>
             </div>
             <div id="suggestions" class="suggestions-box"></div>
-            <small id="dbWarning" style="color: #ff5252; display: none; margin-top: 8px;">Wybierz z listy lub wklej link do yt poniżej / Chose from list or paste yt link below</small>
+            <small id="dbWarning" style="color: #ff5252; display: none; margin-top: 8px;">Wybierz z listy lub wklej link poniżej</small>
         </div>
 
         <div class="input-group" id="ytGroup">
-            <label for="ytLink" style="color: #ff5252;">Link do YouTube/Youtube link</label>
-            <input type="text" id="ytLink" placeholder="Wklej link/paste link..." autocomplete="off" style="width: 100%; border-color: #ff5252; background: #222; box-sizing: border-box;">
+            <label for="ytLink" style="color: #ff5252;" id="lblYtLink">Link do YouTube (Utwór spoza bazy)</label>
+            <input type="text" id="ytLink" placeholder="Wklej link do wideo..." autocomplete="off" style="width: 100%; border-color: #ff5252; background: #222; box-sizing: border-box;">
         </div>
 
         <div class="input-group">
-            <label for="imie">Twoje lub Wasze imiona / Your names (Wymagane)</label>
-            <input type="text" id="imie" placeholder="Imię/Name..." autocomplete="off">
+            <label for="imie" id="lblImie">Twoje lub Wasze imiona (Wymagane)</label>
+            <input type="text" id="imie" placeholder="Wpisz imię..." autocomplete="off">
         </div>
 
         <div class="input-group">
-            <label for="narodowosc">Narodowość / Nationality (Optional)</label>
-            <input type="text" id="narodowosc" placeholder="Spain, Maroko, France..." autocomplete="off">
+            <label for="narodowosc" id="lblNarodowosc">Narodowość (Opcjonalnie)</label>
+            <input type="text" id="narodowosc" placeholder="Np. Polska, UK, Spain..." autocomplete="off">
         </div>
 
         <div class="input-group">
-            <label for="kod">Kod Fast Pass / VIP Code (Optional)</label>
-            <input type="text" id="kod" placeholder="6-znakowy kod/6-character code" maxlength="6" style="text-transform: uppercase;" autocomplete="off">
+            <label for="kod" id="lblKod">Kod Fast Pass / VIP (Opcjonalnie)</label>
+            <input type="text" id="kod" placeholder="Wpisz 6-znakowy kod" maxlength="6" style="text-transform: uppercase;" autocomplete="off">
         </div>
 
         <div class="checkbox-container" onclick="document.getElementById('urodziny').click();">
-            <label for="urodziny">Mam dzisiaj urodziny!/I have birthday today! 🎂</label>
+            <label for="urodziny" id="lblUrodziny">Mam dzisiaj urodziny! 🎂</label>
             <input type="checkbox" id="urodziny" onclick="event.stopPropagation();">
         </div>
 
-        <button id="submitBtn" disabled>Wybierz utwór z listy/chose from song from list🛑</button>
+        <button id="submitBtn" disabled>Wybierz utwór z bazy 🛑</button>
     </div>
 </div>
 
 <script>
+    // ====== SŁOWNIK TŁUMACZEŃ ======
+    const dict = {
+        pl: {
+            schedule: "Czwartek (20.00-1.00)<br>Piątek (21.00-2.00)<br>Niedziela (21.00-2.00)",
+            loading: "Pobieranie dostępnej bazy... ⏳",
+            loadingErr: "❌ Brak połączenia z bazą. Wpisz tytuł ręcznie.",
+            successTitle: "✅ Zamówienie wysłane!",
+            successSub: "Zaraz przygotujemy Twój utwór.",
+            lblSzukaj: "Tytuł Piosenki (Wymagane)",
+            plcSzukaj: "Zacznij wpisywać...",
+            ytHelperTitle: "Szukaj utworu na YouTube",
+            ytHelperTitleDis: "Utwór z bazy - brak potrzeby wyszukiwania",
+            dbWarning: "Wybierz z listy lub wklej link poniżej",
+            lblYtLink: "Link do YouTube (Utwór spoza bazy)",
+            plcYtLink: "Wklej link do wideo...",
+            lblImie: "Twoje lub Wasze imiona (Wymagane)",
+            plcImie: "Wpisz imię...",
+            lblNarodowosc: "Narodowość (Opcjonalnie)",
+            plcNarodowosc: "Np. Polska, UK, Spain...",
+            lblKod: "Kod Fast Pass / VIP (Opcjonalnie)",
+            plcKod: "Wpisz 6-znakowy kod",
+            lblUrodziny: "Mam dzisiaj urodziny! 🎂",
+            btnDefault: "Wybierz utwór z bazy 🛑",
+            btnMissingTitle: "Wpisz tytuł utworu 🛑",
+            btnMissingLink: "Wybierz z listy lub dodaj link 🛑",
+            btnMissingName: "Wpisz swoje imię 🛑",
+            btnReady: "Wyślij Zamówienie 🚀",
+            btnSending: "Wysyłanie... ⏳",
+            btnErr: "❌ Błąd, spróbuj ponownie",
+            sumPerformer: "🎤 Wykonawca:",
+            sumSong: "🎵 Utwór:",
+            sumYt: "🔗 <i>Z własnego linku YT</i>",
+            sumBday: "🎂 <i>Zgłoszono Urodziny!</i>",
+            sumCode: "🎟️ <i>Kod VIP:"
+        },
+        en: {
+            schedule: "Thursday (20.00-1.00)<br>Friday (21.00-2.00)<br>Sunday (21.00-2.00)",
+            loading: "Loading available database... ⏳",
+            loadingErr: "❌ Database connection error. Enter title manually.",
+            successTitle: "✅ Order sent!",
+            successSub: "We will prepare your song shortly.",
+            lblSzukaj: "Song Title (Required)",
+            plcSzukaj: "Start typing...",
+            ytHelperTitle: "Search song on YouTube",
+            ytHelperTitleDis: "Song from database - no search needed",
+            dbWarning: "Choose from the list or paste the link below",
+            lblYtLink: "YouTube Link (Song outside the database)",
+            plcYtLink: "Paste the video link...",
+            lblImie: "Your name(s) (Required)",
+            plcImie: "Enter name...",
+            lblNarodowosc: "Nationality (Optional)",
+            plcNarodowosc: "E.g. Poland, UK, Spain...",
+            lblKod: "Fast Pass / VIP Code (Optional)",
+            plcKod: "Enter 6-character code",
+            lblUrodziny: "It's my birthday today! 🎂",
+            btnDefault: "Choose a song from the database 🛑",
+            btnMissingTitle: "Enter the song title 🛑",
+            btnMissingLink: "Choose from list or add link 🛑",
+            btnMissingName: "Enter your name 🛑",
+            btnReady: "Send Order 🚀",
+            btnSending: "Sending... ⏳",
+            btnErr: "❌ Error, try again",
+            sumPerformer: "🎤 Performer:",
+            sumSong: "🎵 Song:",
+            sumYt: "🔗 <i>From custom YT link</i>",
+            sumBday: "🎂 <i>Birthday Reported!</i>",
+            sumCode: "🎟️ <i>VIP Code:"
+        }
+    };
+
+    let curLang = 'pl';
+
+    function setLanguage(lang) {
+        curLang = lang;
+        document.getElementById('btnPl').classList.toggle('active', lang === 'pl');
+        document.getElementById('btnEn').classList.toggle('active', lang === 'en');
+        document.documentElement.lang = lang;
+
+        const d = dict[lang];
+        document.getElementById('txtSchedule').innerHTML = d.schedule;
+        if(document.getElementById('loadingMsg').textContent.includes('⏳')) document.getElementById('loadingMsg').textContent = d.loading;
+        document.getElementById('txtSuccessTitle').textContent = d.successTitle;
+        document.getElementById('txtSuccessSub').textContent = d.successSub;
+        
+        document.getElementById('lblSzukaj').textContent = d.lblSzukaj;
+        document.getElementById('szukaj').placeholder = d.plcSzukaj;
+        document.getElementById('searchYTHelper').title = isSelectedFromDb ? d.ytHelperTitleDis : d.ytHelperTitle;
+        document.getElementById('dbWarning').textContent = d.dbWarning;
+        
+        document.getElementById('lblYtLink').textContent = d.lblYtLink;
+        document.getElementById('ytLink').placeholder = d.plcYtLink;
+        
+        document.getElementById('lblImie').textContent = d.lblImie;
+        document.getElementById('imie').placeholder = d.plcImie;
+        
+        document.getElementById('lblNarodowosc').textContent = d.lblNarodowosc;
+        document.getElementById('narodowosc').placeholder = d.plcNarodowosc;
+        
+        document.getElementById('lblKod').textContent = d.lblKod;
+        document.getElementById('kod').placeholder = d.plcKod;
+        
+        document.getElementById('lblUrodziny').textContent = d.lblUrodziny;
+
+        checkInputs(); // Odświeża przycisk "Wyślij" żeby dostał odpowiedni tekst w nowym języku
+    }
+
     // ====== KONFIGURACJA ======
     const GIST_ID = 'c3050f88e17d6e1ec9e86bdbea6277e0'; 
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxJ1_L6d8lFs8scNEiqd0kSKwm9tooJWr2sPrPlOsne_8zFB3ZTuBUgidpz9E-uGJ5U/exec';
@@ -138,7 +247,7 @@
             loadingMsg.style.display = 'none';
             checkInputs();
         } catch (err) {
-            loadingMsg.innerHTML = "❌ Brak połączenia z bazą. Wpisz tytuł ręcznie.";
+            loadingMsg.innerHTML = dict[curLang].loadingErr;
             loadingMsg.style.color = "#ff5252";
             checkInputs();
         }
@@ -199,6 +308,7 @@
     });
 
     function checkInputs() {
+        const d = dict[curLang];
         const titleVal = szukajInput.value.trim();
         const hasTitle = titleVal.length > 0;
         const hasName = imieInput.value.trim().length > 0;
@@ -211,13 +321,12 @@
             }
         }
 
-        // NOWE: Zarządzanie aktywnością przycisku YT
         if (isSelectedFromDb) {
             searchYTHelper.disabled = true;
-            searchYTHelper.title = "Utwór z bazy - brak potrzeby wyszukiwania";
+            searchYTHelper.title = d.ytHelperTitleDis;
         } else {
             searchYTHelper.disabled = false;
-            searchYTHelper.title = "Szukaj utworu na YouTube";
+            searchYTHelper.title = d.ytHelperTitle;
         }
 
         const ytLinkVal = ytLinkInput.value.trim();
@@ -232,14 +341,16 @@
             ytLinkInput.value = ''; 
         }
 
+        // Tłumaczenie przycisków w zależności od statusu wypełnienia
         if (hasName && hasTitle && (isSelectedFromDb || hasValidYtLink)) {
             submitBtn.disabled = false;
-            submitBtn.textContent = "Wyślij Zamówienie 🚀";
+            submitBtn.textContent = d.btnReady;
         } else {
             submitBtn.disabled = true;
-            if (!hasTitle) { submitBtn.textContent = "Wpisz tytuł utworu 🛑"; }
-            else if (!isSelectedFromDb && !hasValidYtLink) { submitBtn.textContent = "Wybierz z listy lub dodaj link 🛑"; }
-            else if (!hasName) { submitBtn.textContent = "Wpisz swoje imię 🛑"; }
+            if (!hasTitle) { submitBtn.textContent = d.btnMissingTitle; }
+            else if (!isSelectedFromDb && !hasValidYtLink) { submitBtn.textContent = d.btnMissingLink; }
+            else if (!hasName) { submitBtn.textContent = d.btnMissingName; }
+            else { submitBtn.textContent = d.btnDefault; }
         }
     }
     
@@ -247,13 +358,14 @@
     ytLinkInput.addEventListener('input', checkInputs);
 
     submitBtn.addEventListener('click', async () => {
+        const d = dict[curLang];
         submitBtn.disabled = true;
-        submitBtn.textContent = "Wysyłanie... ⏳";
+        submitBtn.textContent = d.btnSending;
 
-        let summaryHtml = `🎤 Wykonawca: <b>${imieInput.value.trim()}</b><br>🎵 Utwór: <b>${szukajInput.value.trim()}</b>`;
-        if (ytLinkInput.value.trim()) summaryHtml += `<br>🔗 <i>Z własnego linku YT</i>`;
-        if (urodzinyCheck.checked) summaryHtml += `<br>🎂 <i>Zgłoszono Urodziny!</i>`;
-        if (kodInput.value.trim()) summaryHtml += `<br>🎟️ <i>Kod VIP: ${kodInput.value.trim().toUpperCase()}</i>`;
+        let summaryHtml = `${d.sumPerformer} <b>${imieInput.value.trim()}</b><br>${d.sumSong} <b>${szukajInput.value.trim()}</b>`;
+        if (ytLinkInput.value.trim()) summaryHtml += `<br>${d.sumYt}`;
+        if (urodzinyCheck.checked) summaryHtml += `<br>${d.sumBday}`;
+        if (kodInput.value.trim()) summaryHtml += `<br>${d.sumCode} ${kodInput.value.trim().toUpperCase()}</i>`;
         successSummary.innerHTML = summaryHtml;
 
         try {
@@ -285,13 +397,16 @@
                 urodzinyCheck.checked = false;
                 isSelectedFromDb = false;
                 checkInputs();
-            }, 8000); // Wydłużono czas wyświetlania komunikatu sukcesu do 8 sekund
+            }, 8000);
 
         } catch (error) {
-            submitBtn.textContent = "❌ Błąd, spróbuj ponownie";
+            submitBtn.textContent = d.btnErr;
             setTimeout(() => { checkInputs(); }, 3000);
         }
     });
+
+    // Inicjalizacja domyślnego języka (Polski) po załadowaniu
+    setLanguage('pl');
 </script>
 </body>
 </html>
