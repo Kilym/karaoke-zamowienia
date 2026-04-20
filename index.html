@@ -36,9 +36,12 @@
 
         #formContent { display: flex; flex-direction: column; gap: 15px; width: 100%; }
 
-        /* Dodatki dla modułu YouTube */
         #ytGroup { display: none; background: rgba(255, 82, 82, 0.05); padding: 10px; border-radius: 8px; border: 1px dashed #ff5252; }
-        #searchYTHelper { margin-top: 0; padding: 0 15px; background: #ff0000; color: white; font-size: 14px; flex-shrink: 0; border-radius: 8px; display: flex; align-items: center; }
+        
+        /* Zmodyfikowany przycisk YouTube */
+        #searchYTHelper { margin: 0; padding: 0 16px; background: #ff0000; color: white; font-size: 16px; font-weight: bold; flex-shrink: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; border: none; }
+        #searchYTHelper:hover { background: #d50000; }
+        #searchYTHelper:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -63,17 +66,17 @@
     <div id="formContent">
         <div class="input-group">
             <label for="szukaj">Tytuł Piosenki / Song Title (Wymagane)</label>
-            <input type="text" id="szukaj" placeholder="Zacznij wpisywać..." autocomplete="off">
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="szukaj" placeholder="Zacznij wpisywać..." autocomplete="off" style="flex: 1;">
+                <button type="button" id="searchYTHelper" title="Szukaj utworu na YouTube">YT 🔍</button>
+            </div>
             <div id="suggestions" class="suggestions-box"></div>
             <small id="dbWarning" style="color: #ff5252; display: none; margin-top: 8px;">Wybierz z listy lub wklej link poniżej / Chose from list or paste link below</small>
         </div>
 
         <div class="input-group" id="ytGroup">
             <label for="ytLink" style="color: #ff5252;">Link do YouTube (Utwór spoza bazy)</label>
-            <div style="display: flex; gap: 8px;">
-                <input type="text" id="ytLink" placeholder="Wklej link do wideo..." autocomplete="off" style="flex: 1; border-color: #ff5252; background: #222;">
-                <button type="button" id="searchYTHelper">Szukaj na YT 🔍</button>
-            </div>
+            <input type="text" id="ytLink" placeholder="Wklej link do wideo..." autocomplete="off" style="width: 100%; border-color: #ff5252; background: #222; box-sizing: border-box;">
         </div>
 
         <div class="input-group">
@@ -123,7 +126,7 @@
     const loadingMsg = document.getElementById('loadingMsg');
     
     const successMsg = document.getElementById('successMsg');
-    const successSummary = document.getElementById('successSummary'); // Kontener podsumowania
+    const successSummary = document.getElementById('successSummary'); 
     const formContent = document.getElementById('formContent');
 
     async function loadBaza() {
@@ -237,7 +240,6 @@
         submitBtn.disabled = true;
         submitBtn.textContent = "Wysyłanie... ⏳";
 
-        // Generowanie podsumowania dla klienta przed wysłaniem
         let summaryHtml = `🎤 Wykonawca: <b>${imieInput.value.trim()}</b><br>🎵 Utwór: <b>${szukajInput.value.trim()}</b>`;
         if (ytLinkInput.value.trim()) summaryHtml += `<br>🔗 <i>Z własnego linku YT</i>`;
         if (urodzinyCheck.checked) summaryHtml += `<br>🎂 <i>Zgłoszono Urodziny!</i>`;
@@ -273,7 +275,7 @@
                 urodzinyCheck.checked = false;
                 isSelectedFromDb = false;
                 checkInputs();
-            }, 6000); // Wydłużyłem czas pokazywania komunikatu do 6 sekund, żeby klient zdążył przeczytać podsumowanie
+            }, 6000);
 
         } catch (error) {
             submitBtn.textContent = "❌ Błąd, spróbuj ponownie";
