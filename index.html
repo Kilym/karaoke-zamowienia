@@ -18,7 +18,6 @@
         .checkbox-container label { margin: 0; cursor: pointer; font-size: 16px; color: white; flex: 1; }
         .checkbox-container input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: #bb86fc; }
 
-        /* Zmiana tutaj: lista pojawia się nad inputem (bottom: 100%, top: auto) */
         .suggestions-box { position: absolute; bottom: 100%; top: auto; left: 0; right: 0; background: #2c2c2c; border-radius: 8px; box-shadow: 0 -4px 12px rgba(0,0,0,0.5); max-height: 250px; overflow-y: auto; z-index: 10; display: none; margin-bottom: 5px; border: 1px solid #444; }
         .suggestion-item { padding: 12px 15px; border-bottom: 1px solid #3a3a3a; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .suggestion-item:last-child { border-bottom: none; }
@@ -34,6 +33,10 @@
         #successMsg { color: #4CAF50; font-weight: bold; display: none; font-size: 16px; padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; margin-bottom: 20px; }
         
         #formContent { display: flex; flex-direction: column; gap: 15px; width: 100%; }
+
+        /* Dodatki dla modułu YouTube */
+        #ytGroup { display: none; background: rgba(255, 82, 82, 0.05); padding: 10px; border-radius: 8px; border: 1px dashed #ff5252; }
+        #searchYTHelper { margin-top: 0; padding: 0 15px; background: #ff0000; color: white; font-size: 14px; flex-shrink: 0; border-radius: 8px; display: flex; align-items: center; }
     </style>
 </head>
 <body>
@@ -54,6 +57,15 @@
             <label for="szukaj">Tytuł Piosenki/Song Title (Wymagane)</label>
             <input type="text" id="szukaj" placeholder="Zacznij wpisywać..." autocomplete="off">
             <div id="suggestions" class="suggestions-box"></div>
+            <small id="dbWarning" style="color: #ff5252; display: none; margin-top: 8px;">Musisz wybrać utwór z listy! Jeśli go tam nie ma, wklej link poniżej.</small>
+        </div>
+
+        <div class="input-group" id="ytGroup">
+            <label for="ytLink" style="color: #ff5252;">Link do YouTube (Utwór spoza bazy)</label>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="ytLink" placeholder="Wklej link do wideo..." autocomplete="off" style="flex: 1; border-color: #ff5252; background: #222;">
+                <button type="button" id="searchYTHelper">Szukaj na YT 🔍</button>
+            </div>
         </div>
 
         <div class="input-group">
@@ -76,7 +88,7 @@
             <input type="checkbox" id="urodziny" onclick="event.stopPropagation();">
         </div>
 
-        <button id="submitBtn" disabled>Wyślij Zamówienie 🚀</button>
+        <button id="submitBtn" disabled>Wybierz utwór z bazy 🛑</button>
     </div>
 </div>
 
@@ -86,7 +98,14 @@
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxJ1_L6d8lFs8scNEiqd0kSKwm9tooJWr2sPrPlOsne_8zFB3ZTuBUgidpz9E-uGJ5U/exec';
     
     let baza = [];
+    let isSelectedFromDb = false; // NOWE: Flaga kontrolująca czy wybrano z listy
+
     const szukajInput = document.getElementById('szukaj');
+    const ytLinkInput = document.getElementById('ytLink');
+    const ytGroup = document.getElementById('ytGroup');
+    const dbWarning = document.getElementById('dbWarning');
+    const searchYTHelper = document.getElementById('searchYTHelper');
+
     const imieInput = document.getElementById('imie');
     const narodowoscInput = document.getElementById('narodowosc');
     const kodInput = document.getElementById('kod');
@@ -112,12 +131,12 @@
     }
     loadBaza();
 
-    // Funkcja ułatwiająca wyszukiwanie (usuwa interpunkcję i dzieli na słowa)
     function normalizeText(str) {
         return str.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
     }
 
     szukajInput.addEventListener('input', () => {
+        isSelectedFromDb = false; // Resetujemy flagę przy pisaniu
         const rawQuery = szukajInput.value;
         suggestionsBox.innerHTML = '';
         
@@ -131,7 +150,6 @@
 
         const matches = baza.filter(s => {
             const targetStr = normalizeText(s.title);
-            // Sprawdzamy, czy w tytule znajduje się każde wpisane przez użytkownika słowo
             return queryWords.every(word => targetStr.includes(word));
         }).slice(0, 8);
         
@@ -144,6 +162,7 @@
                 
                 div.addEventListener('click', () => {
                     szukajInput.value = song.title;
+                    isSelectedFromDb = true; // Zaznaczamy, że wybrano z bazy!
                     suggestionsBox.style.display = 'none';
                     checkInputs();
                 });
@@ -156,18 +175,57 @@
         checkInputs();
     });
 
+    // Otwarcia nowej karty YT z wyszukiwaniem po tytule
+    searchYTHelper.addEventListener('click', () => {
+        const query = szukajInput.value.trim() || 'karaoke';
+        window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(query + ' karaoke')}`, '_blank');
+    });
+
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.input-group')) suggestionsBox.style.display = 'none';
     });
 
     function checkInputs() {
-        if (imieInput.value.trim().length > 0 && szukajInput.value.trim().length > 0) {
+        const titleVal = szukajInput.value.trim();
+        const hasTitle = titleVal.length > 0;
+        const hasName = imieInput.value.trim().length > 0;
+        
+        // Zabezpieczenie: jeśli ktoś sam z palca wpisze tytuł idealnie tak jak w bazie
+        if (hasTitle && !isSelectedFromDb) {
+            const exactMatch = baza.find(s => s.title.toLowerCase() === titleVal.toLowerCase());
+            if (exactMatch) {
+                isSelectedFromDb = true;
+                szukajInput.value = exactMatch.title; 
+            }
+        }
+
+        const ytLinkVal = ytLinkInput.value.trim();
+        const hasValidYtLink = ytLinkVal.length > 0 && (ytLinkVal.includes('youtube.com') || ytLinkVal.includes('youtu.be'));
+
+        // Logika wyświetlania panelu YT
+        if (hasTitle && !isSelectedFromDb) {
+            dbWarning.style.display = 'block';
+            ytGroup.style.display = 'flex';
+        } else {
+            dbWarning.style.display = 'none';
+            ytGroup.style.display = 'none';
+            ytLinkInput.value = ''; // Czyścimy link jeśli użytkownik zmienił zdanie i wybrał z bazy
+        }
+
+        // Logika przycisku Wyślij
+        if (hasName && hasTitle && (isSelectedFromDb || hasValidYtLink)) {
             submitBtn.disabled = false;
+            submitBtn.textContent = "Wyślij Zamówienie 🚀";
         } else {
             submitBtn.disabled = true;
+            if (!hasTitle) { submitBtn.textContent = "Wpisz tytuł utworu 🛑"; }
+            else if (!isSelectedFromDb && !hasValidYtLink) { submitBtn.textContent = "Wybierz z listy lub dodaj link 🛑"; }
+            else if (!hasName) { submitBtn.textContent = "Wpisz swoje imię 🛑"; }
         }
     }
+    
     imieInput.addEventListener('input', checkInputs);
+    ytLinkInput.addEventListener('input', checkInputs); // Sprawdzamy na bieżąco pole z linkiem YT
 
     submitBtn.addEventListener('click', async () => {
         submitBtn.disabled = true;
@@ -180,6 +238,7 @@
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams({ 
                     tytul: szukajInput.value.trim(),
+                    url: ytLinkInput.value.trim(), // NOWE: Przesyłamy link z YouTube
                     imie: imieInput.value.trim(), 
                     narodowosc: narodowoscInput.value.trim(),
                     kod: kodInput.value.trim().toUpperCase(),
@@ -194,17 +253,18 @@
                 successMsg.style.display = 'none';
                 formContent.style.display = 'flex';
                 szukajInput.value = '';
+                ytLinkInput.value = '';
                 imieInput.value = '';
                 narodowoscInput.value = '';
                 kodInput.value = '';
                 urodzinyCheck.checked = false;
-                submitBtn.textContent = "Wyślij Zamówienie 🚀";
+                isSelectedFromDb = false;
                 checkInputs();
             }, 5000);
 
         } catch (error) {
             submitBtn.textContent = "❌ Błąd, spróbuj ponownie";
-            setTimeout(() => { submitBtn.textContent = "Wyślij Zamówienie 🚀"; checkInputs(); }, 3000);
+            setTimeout(() => { checkInputs(); }, 3000);
         }
     });
 </script>
