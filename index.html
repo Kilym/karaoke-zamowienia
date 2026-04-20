@@ -30,8 +30,10 @@
         button:disabled { background-color: #555; color: #888; cursor: not-allowed; }
         
         #loadingMsg, #successMsg { text-align: center; font-size: 14px; margin-top: -10px; }
-        #successMsg { color: #4CAF50; font-weight: bold; display: none; font-size: 16px; padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; margin-bottom: 20px; }
+        #successMsg { color: #4CAF50; display: none; font-size: 16px; padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; margin-bottom: 20px; }
         
+        #successSummary { margin-top: 12px; padding: 12px; background: rgba(0, 0, 0, 0.25); border-radius: 8px; color: #e0e0e0; font-size: 14px; text-align: left; line-height: 1.6; border: 1px solid rgba(76, 175, 80, 0.2); }
+
         #formContent { display: flex; flex-direction: column; gap: 15px; width: 100%; }
 
         /* Dodatki dla modułu YouTube */
@@ -50,14 +52,20 @@
     </div>
     
     <div id="loadingMsg" style="color: #bb86fc;">Pobieranie dostępnej bazy... ⏳</div>
-    <div id="successMsg">✅ Zamówienie wysłane!<br><span style="font-size:12px; font-weight:normal;">Zaraz przygotujemy Twój utwór.</span></div>
+    
+    <div id="successMsg">
+        <strong style="font-size: 18px;">✅ Zamówienie wysłane!</strong><br>
+        <span style="font-size:13px; color: #81c784;">Zaraz przygotujemy Twój utwór.</span>
+        <div id="successSummary">
+            </div>
+    </div>
 
     <div id="formContent">
         <div class="input-group">
-            <label for="szukaj">Tytuł Piosenki/Song Title (Wymagane)</label>
+            <label for="szukaj">Tytuł Piosenki / Song Title (Wymagane)</label>
             <input type="text" id="szukaj" placeholder="Zacznij wpisywać..." autocomplete="off">
             <div id="suggestions" class="suggestions-box"></div>
-            <small id="dbWarning" style="color: #ff5252; display: none; margin-top: 8px;">Musisz wybrać utwór z listy! Jeśli go tam nie ma, wklej link poniżej.</small>
+            <small id="dbWarning" style="color: #ff5252; display: none; margin-top: 8px;">Wybierz z listy lub wklej link poniżej / Chose from list or paste link below</small>
         </div>
 
         <div class="input-group" id="ytGroup">
@@ -98,7 +106,7 @@
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxJ1_L6d8lFs8scNEiqd0kSKwm9tooJWr2sPrPlOsne_8zFB3ZTuBUgidpz9E-uGJ5U/exec';
     
     let baza = [];
-    let isSelectedFromDb = false; // NOWE: Flaga kontrolująca czy wybrano z listy
+    let isSelectedFromDb = false;
 
     const szukajInput = document.getElementById('szukaj');
     const ytLinkInput = document.getElementById('ytLink');
@@ -113,7 +121,9 @@
     const suggestionsBox = document.getElementById('suggestions');
     const submitBtn = document.getElementById('submitBtn');
     const loadingMsg = document.getElementById('loadingMsg');
+    
     const successMsg = document.getElementById('successMsg');
+    const successSummary = document.getElementById('successSummary'); // Kontener podsumowania
     const formContent = document.getElementById('formContent');
 
     async function loadBaza() {
@@ -136,7 +146,7 @@
     }
 
     szukajInput.addEventListener('input', () => {
-        isSelectedFromDb = false; // Resetujemy flagę przy pisaniu
+        isSelectedFromDb = false; 
         const rawQuery = szukajInput.value;
         suggestionsBox.innerHTML = '';
         
@@ -162,7 +172,7 @@
                 
                 div.addEventListener('click', () => {
                     szukajInput.value = song.title;
-                    isSelectedFromDb = true; // Zaznaczamy, że wybrano z bazy!
+                    isSelectedFromDb = true; 
                     suggestionsBox.style.display = 'none';
                     checkInputs();
                 });
@@ -175,7 +185,6 @@
         checkInputs();
     });
 
-    // Otwarcia nowej karty YT z wyszukiwaniem po tytule
     searchYTHelper.addEventListener('click', () => {
         const query = szukajInput.value.trim() || 'karaoke';
         window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(query + ' karaoke')}`, '_blank');
@@ -190,7 +199,6 @@
         const hasTitle = titleVal.length > 0;
         const hasName = imieInput.value.trim().length > 0;
         
-        // Zabezpieczenie: jeśli ktoś sam z palca wpisze tytuł idealnie tak jak w bazie
         if (hasTitle && !isSelectedFromDb) {
             const exactMatch = baza.find(s => s.title.toLowerCase() === titleVal.toLowerCase());
             if (exactMatch) {
@@ -202,17 +210,15 @@
         const ytLinkVal = ytLinkInput.value.trim();
         const hasValidYtLink = ytLinkVal.length > 0 && (ytLinkVal.includes('youtube.com') || ytLinkVal.includes('youtu.be'));
 
-        // Logika wyświetlania panelu YT
         if (hasTitle && !isSelectedFromDb) {
             dbWarning.style.display = 'block';
             ytGroup.style.display = 'flex';
         } else {
             dbWarning.style.display = 'none';
             ytGroup.style.display = 'none';
-            ytLinkInput.value = ''; // Czyścimy link jeśli użytkownik zmienił zdanie i wybrał z bazy
+            ytLinkInput.value = ''; 
         }
 
-        // Logika przycisku Wyślij
         if (hasName && hasTitle && (isSelectedFromDb || hasValidYtLink)) {
             submitBtn.disabled = false;
             submitBtn.textContent = "Wyślij Zamówienie 🚀";
@@ -225,11 +231,18 @@
     }
     
     imieInput.addEventListener('input', checkInputs);
-    ytLinkInput.addEventListener('input', checkInputs); // Sprawdzamy na bieżąco pole z linkiem YT
+    ytLinkInput.addEventListener('input', checkInputs);
 
     submitBtn.addEventListener('click', async () => {
         submitBtn.disabled = true;
         submitBtn.textContent = "Wysyłanie... ⏳";
+
+        // Generowanie podsumowania dla klienta przed wysłaniem
+        let summaryHtml = `🎤 Wykonawca: <b>${imieInput.value.trim()}</b><br>🎵 Utwór: <b>${szukajInput.value.trim()}</b>`;
+        if (ytLinkInput.value.trim()) summaryHtml += `<br>🔗 <i>Z własnego linku YT</i>`;
+        if (urodzinyCheck.checked) summaryHtml += `<br>🎂 <i>Zgłoszono Urodziny!</i>`;
+        if (kodInput.value.trim()) summaryHtml += `<br>🎟️ <i>Kod VIP: ${kodInput.value.trim().toUpperCase()}</i>`;
+        successSummary.innerHTML = summaryHtml;
 
         try {
             await fetch(WEB_APP_URL, {
@@ -238,7 +251,7 @@
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams({ 
                     tytul: szukajInput.value.trim(),
-                    url: ytLinkInput.value.trim(), // NOWE: Przesyłamy link z YouTube
+                    url: ytLinkInput.value.trim(),
                     imie: imieInput.value.trim(), 
                     narodowosc: narodowoscInput.value.trim(),
                     kod: kodInput.value.trim().toUpperCase(),
@@ -260,7 +273,7 @@
                 urodzinyCheck.checked = false;
                 isSelectedFromDb = false;
                 checkInputs();
-            }, 5000);
+            }, 6000); // Wydłużyłem czas pokazywania komunikatu do 6 sekund, żeby klient zdążył przeczytać podsumowanie
 
         } catch (error) {
             submitBtn.textContent = "❌ Błąd, spróbuj ponownie";
