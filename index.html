@@ -417,21 +417,22 @@
     ytLinkInput.addEventListener('input', checkInputs);
 
     submitBtn.addEventListener('click', (e) => {
-        // Zdejmujemy focus z pól tekstowych (wymusza to schowanie klawiatury na Androidzie)
+        // 1. Zdejmujemy focus (chowa klawiaturę na telefonach)
         if (document.activeElement) document.activeElement.blur();
 
         const d = dict[curLang];
         
-        // 1. Zmieniamy tekst i blokujemy przycisk
+        // 2. Zmieniamy tekst używając innerHTML i nadajemy szare kolory
         submitBtn.disabled = true;
-        submitBtn.textContent = d.btnSending;
-        
-        // Narzucamy style w linii, by mieć 100% pewności, że Android od razu je zobaczy
+        submitBtn.innerHTML = d.btnSending;
         submitBtn.style.backgroundColor = "#555";
         submitBtn.style.color = "#888";
 
-        // 2. TWARDE OPÓŹNIENIE (Pół sekundy)
-        // Dajemy przeglądarce czas na schowanie klawiatury i pomalowanie przycisku na szaro.
+        // 3. MAGIA: Wymuszenie odświeżenia (Force Reflow)
+        // Pytamy przeglądarkę o wysokość przycisku. Aby ją obliczyć, MUSI go narysować z nowym tekstem!
+        void submitBtn.offsetHeight;
+
+        // 4. Czekamy 0.5 sekundy, dając telefonowi pełen luz na wyświetlenie grafiki
         setTimeout(async () => {
             
             let summaryHtml = `${d.sumPerformer} <b>${imieInput.value.trim()}</b><br>${d.sumSong} <b>${szukajInput.value.trim()}</b>`;
@@ -476,7 +477,7 @@
                 }, 8000);
 
             } catch (error) {
-                submitBtn.textContent = d.btnErr;
+                submitBtn.innerHTML = d.btnErr;
                 submitBtn.style.backgroundColor = "#ff5252";
                 submitBtn.style.color = "#fff";
                 setTimeout(() => { 
@@ -486,7 +487,7 @@
                 }, 3000);
             }
 
-        }, 500); // 500 milisekund bezwzględnego czekania
+        }, 500); // 500ms opóźnienia
     });
 
     setLanguage('pl');
