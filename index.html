@@ -25,7 +25,7 @@
 
         .input-group { position: relative; display: flex; flex-direction: column;}
         
-        /* --- NOWY WYGLĄD LISTY PODPOWIEDZI --- */
+        /* --- WYGLĄD LISTY PODPOWIEDZI --- */
         .suggestions-box { 
             background: #252525; border-radius: 8px; box-shadow: 0 8px 16px rgba(0,0,0,0.6); 
             max-height: 55vh; overflow-y: auto; display: none; margin-top: 8px; border: 1px solid #444; 
@@ -37,25 +37,24 @@
         .suggestion-item:hover, .suggestion-item:active { background: #3a3a3a; }
         .suggestion-item:last-child { border-bottom: none; }
         
-        .no-results {
-            padding: 20px 15px; text-align: center; color: #ff5252; font-size: 15px; line-height: 1.4;
-        }
+        .no-results { padding: 20px 15px; text-align: center; color: #ff5252; font-size: 15px; line-height: 1.4; }
         
         /* --- TRYB WYSZUKIWANIA (FOCUS MODE) --- */
-        /* Klasa dodawana do kontenera formularza podczas wpisywania tytułu */
         .search-active .hide-in-search { display: none !important; }
         
         button { background-color: #bb86fc; color: #000; font-weight: bold; font-size: 18px; padding: 16px; border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-top: 10px; }
         button:active { background-color: #9965f4; transform: scale(0.98); }
         button:disabled { background-color: #555; color: #888; cursor: not-allowed; }
         
+        /* Dodatkowa informacja pod przyciskiem */
+        .extra-info-text { text-align: center; font-size: 13px; color: #aaa; margin-top: 5px; line-height: 1.5; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+
         #loadingMsg, #successMsg { text-align: center; font-size: 14px; margin-top: -10px; }
         #successMsg { color: #4CAF50; display: none; font-size: 16px; padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; margin-bottom: 20px; }
         #successSummary { margin-top: 12px; padding: 12px; background: rgba(0, 0, 0, 0.25); border-radius: 8px; color: #e0e0e0; font-size: 14px; text-align: left; line-height: 1.6; border: 1px solid rgba(76, 175, 80, 0.2); }
         #formContent { display: flex; flex-direction: column; gap: 15px; width: 100%; }
         #ytGroup { display: none; background: rgba(255, 82, 82, 0.05); padding: 15px; border-radius: 8px; border: 1px dashed #ff5252; margin-top: 5px; }
         
-        /* Przycisk YT domyślnie ukryty, pojawia się w JS gdy brak wyników */
         #searchYTHelper { margin: 0; padding: 0 16px; background: #ff0000; color: white; font-size: 16px; font-weight: bold; flex-shrink: 0; border-radius: 8px; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; border: none; display: none; }
         #searchYTHelper:hover:not(:disabled) { background: #d50000; }
         #searchYTHelper:active:not(:disabled) { transform: scale(0.95); }
@@ -119,6 +118,8 @@
         </div>
 
         <button id="submitBtn" class="hide-in-search" disabled>Wybierz utwór z bazy 🛑</button>
+        
+        <div id="extraInfoText" class="extra-info-text hide-in-search"></div>
     </div>
 </div>
 
@@ -156,7 +157,8 @@
             sumSong: "🎵 Utwór:",
             sumYt: "🔗 <i>Z własnego linku YT</i>",
             sumBday: "🎂 <i>Zgłoszono Urodziny!</i>",
-            sumCode: "🎟️ <i>Kod VIP:"
+            sumCode: "🎟️ <i>Kod VIP:</i>",
+            extraInfo: "<b>INFORMACJA</b> (dotyczy niedzielnego karaoke):<br><br>Drodzy przyjaciele!<br>Do 23:30 możecie śpiewać piosenki popularne tylko w Waszym kraju.<br>Po 23:30 przełączamy się na anglojęzyczne największe hity 🎤<br>Wpisujcie swoje piosenki, które połączą wszystkich<br>i zmienią Klub INDEKS w jedną wielką imprezę!"
         },
         en: {
             schedule: "Thursday (20.00-1.00)<br>Friday (21.00-2.00)<br>Sunday (21.00-2.00)",
@@ -189,7 +191,8 @@
             sumSong: "🎵 Song:",
             sumYt: "🔗 <i>From custom YT link</i>",
             sumBday: "🎂 <i>Birthday Reported!</i>",
-            sumCode: "🎟️ <i>VIP Code:"
+            sumCode: "🎟️ <i>VIP Code:</i>",
+            extraInfo: "<b>INFORMATION</b> (applies to Sunday karaoke events):<br><br>Dear friends!<br>Until 11.30 PM, you can sing songs popular only in your country.<br>After 11.30 PM, we switch to English-language best hits 🎤<br>Write down your songs that will bring everyone together<br>and turn INDEKS Club into one big party!"
         }
     };
 
@@ -225,8 +228,9 @@
         document.getElementById('kod').placeholder = d.plcKod;
         
         document.getElementById('lblUrodziny').textContent = d.lblUrodziny;
+        // UWAGA: Użyto innerHTML aby zachować wstawione w kodzie łamanie tekstu <br> i pogrubienia <b>
+        document.getElementById('extraInfoText').innerHTML = d.extraInfo;
 
-        // Odśwież tłumaczenie komunikatu o błędzie, jeśli jest widoczny
         if (suggestionsBox.querySelector('.no-results')) {
             suggestionsBox.querySelector('.no-results').innerHTML = d.noResults;
         }
@@ -278,16 +282,22 @@
         return str.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
     }
 
-    // --- TRYB WYSZUKIWANIA (Zarządzanie Fokusem) ---
+    // --- TRYB WYSZUKIWANIA I AUTOMATYCZNE PRZEWIJANIE ---
     szukajInput.addEventListener('focus', () => {
         formContent.classList.add('search-active');
         if (szukajInput.value.trim().length > 0) {
-            szukajInput.dispatchEvent(new Event('input')); // Wymuś pokazanie listy
+            szukajInput.dispatchEvent(new Event('input')); 
         }
+        
+        // Płynne przewijanie do pola wyszukiwania (z małym opóźnieniem na wysunięcie klawiatury mobilnej)
+        setTimeout(() => {
+            const yOffset = -20; // Lekki margines od góry ekranu
+            const y = searchInputGroup.getBoundingClientRect().top + window.scrollY + yOffset;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+        }, 300);
     });
 
     document.addEventListener('click', (e) => {
-        // Zamykanie trybu wyszukiwania, jeśli kliknięto poza obszarem pola wyszukiwarki/listy
         if (!e.target.closest('#searchInputGroup')) {
             formContent.classList.remove('search-active');
             suggestionsBox.style.display = 'none';
@@ -295,7 +305,6 @@
         }
     });
 
-    // --- LOGIKA WYSZUKIWANIA ---
     szukajInput.addEventListener('input', () => {
         isSelectedFromDb = false; 
         const rawQuery = szukajInput.value;
@@ -305,7 +314,7 @@
         
         if (queryWords.length === 0) {
             suggestionsBox.style.display = 'none';
-            searchYTHelper.style.display = 'none'; // Ukryj przycisk YT
+            searchYTHelper.style.display = 'none'; 
             checkInputs();
             return;
         }
@@ -313,11 +322,11 @@
         const matches = baza.filter(s => {
             const targetStr = normalizeText(s.title);
             return queryWords.every(word => targetStr.includes(word));
-        }).slice(0, 15); // Zwiększyłem limit, bo mamy więcej miejsca!
+        }).slice(0, 15);
         
         if (matches.length > 0) {
             suggestionsBox.style.display = 'block';
-            searchYTHelper.style.display = 'none'; // Ukryj przycisk YT - znaleziono piosenki
+            searchYTHelper.style.display = 'none'; 
             
             matches.forEach(song => {
                 const div = document.createElement('div');
@@ -328,16 +337,15 @@
                     szukajInput.value = song.title;
                     isSelectedFromDb = true; 
                     suggestionsBox.style.display = 'none';
-                    formContent.classList.remove('search-active'); // Zakończ tryb focusu
+                    formContent.classList.remove('search-active'); 
                     checkInputs();
                 });
                 
                 suggestionsBox.appendChild(div);
             });
         } else {
-            // BRAK WYNIKÓW - Pokazujemy komunikat i przycisk YT
             suggestionsBox.style.display = 'block';
-            searchYTHelper.style.display = 'flex'; // Pokaż przycisk YT
+            searchYTHelper.style.display = 'flex'; 
             
             const div = document.createElement('div');
             div.className = 'no-results';
@@ -350,7 +358,6 @@
     searchYTHelper.addEventListener('click', () => {
         const query = szukajInput.value.trim() || 'karaoke';
         window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(query + ' karaoke')}`, '_blank');
-        // Po kliknięciu w YT, automatycznie zamykamy tryb wyszukiwania by pokazać pole na link
         formContent.classList.remove('search-active');
         suggestionsBox.style.display = 'none';
         checkInputs();
@@ -373,8 +380,6 @@
         const ytLinkVal = ytLinkInput.value.trim();
         const hasValidYtLink = ytLinkVal.length > 0 && (ytLinkVal.includes('youtube.com') || ytLinkVal.includes('youtu.be'));
 
-        // Wyświetlanie pola "Wklej link", gdy tytuł jest wpisany, ale NIE wybrano z bazy.
-        // Działa tylko poza trybem wyszukiwania (dzięki .hide-in-search chroniącemu wizualny porządek)
         if (hasTitle && !isSelectedFromDb) {
             ytGroup.style.display = 'flex';
         } else {
@@ -382,7 +387,6 @@
             ytLinkInput.value = ''; 
         }
 
-        // Tłumaczenie przycisków w zależności od statusu wypełnienia
         if (hasName && hasTitle && (isSelectedFromDb || hasValidYtLink)) {
             submitBtn.disabled = false;
             submitBtn.textContent = d.btnReady;
@@ -402,6 +406,9 @@
         const d = dict[curLang];
         submitBtn.disabled = true;
         submitBtn.textContent = d.btnSending;
+
+        // Wymuszamy odświeżenie graficzne przycisku przed ciężką operacją sieciową (zapobiega to zacięciu napisu)
+        await new Promise(resolve => setTimeout(resolve, 50));
 
         let summaryHtml = `${d.sumPerformer} <b>${imieInput.value.trim()}</b><br>${d.sumSong} <b>${szukajInput.value.trim()}</b>`;
         if (ytLinkInput.value.trim()) summaryHtml += `<br>${d.sumYt}`;
@@ -446,7 +453,6 @@
         }
     });
 
-    // Inicjalizacja domyślnego języka (Polski) po załadowaniu
     setLanguage('pl');
 </script>
 </body>
