@@ -417,20 +417,14 @@
     ytLinkInput.addEventListener('input', checkInputs);
 
     submitBtn.addEventListener('click', (e) => {
-        // 1. Zdejmujemy focus (chowa klawiaturę na telefonach)
-        if (document.activeElement) document.activeElement.blur();
-
+       
         const d = dict[curLang];
         
-        // 2. Zmieniamy tekst używając innerHTML i nadajemy szare kolory
         submitBtn.disabled = true;
-        submitBtn.innerHTML = d.btnSending;
+        submitBtn.textContent = d.btnSending;
         submitBtn.style.backgroundColor = "#555";
         submitBtn.style.color = "#888";
 
-        // 3. MAGIA: Wymuszenie odświeżenia (Force Reflow)
-        // Pytamy przeglądarkę o wysokość przycisku. Aby ją obliczyć, MUSI go narysować z nowym tekstem!
-        void submitBtn.offsetHeight;
 
         // 4. Czekamy 0.5 sekundy, dając telefonowi pełen luz na wyświetlenie grafiki
         setTimeout(async () => {
