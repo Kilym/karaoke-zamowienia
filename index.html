@@ -40,7 +40,6 @@
         .no-results { padding: 20px 15px; text-align: center; color: #ff5252; font-size: 15px; line-height: 1.4; }
         
         /* --- TRYB WYSZUKIWANIA (Natywny Focus Mode) --- */
-        /* Kiedy body ma klasę search-focus-mode, bezwzględnie ukrywamy elementy */
         body.search-focus-mode .hide-in-search,
         body.search-focus-mode #txtTitle,
         body.search-focus-mode #txtSchedule,
@@ -48,12 +47,11 @@
             display: none !important; 
         }
         
-        /* W trybie focusu robimy z kontenera pełny ekran na telefonie */
         body.search-focus-mode { padding: 0 !important; background-color: #1e1e1e; }
         body.search-focus-mode .container { 
             border-radius: 0 !important; 
             box-shadow: none !important; 
-            padding-bottom: 80vh !important; /* Daje miejsce na wysuniętą klawiaturę */
+            padding-bottom: 80vh !important; 
             max-width: 100%;
         }
         
@@ -61,7 +59,6 @@
         button:active { background-color: #9965f4; transform: scale(0.98); }
         button:disabled { background-color: #555; color: #888; cursor: not-allowed; }
         
-        /* Dodatkowa informacja pod przyciskiem */
         .extra-info-text { text-align: center; font-size: 13px; color: #aaa; margin-top: 5px; line-height: 1.5; padding: 15px 10px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
 
         #loadingMsg, #successMsg { text-align: center; font-size: 14px; margin-top: -10px; }
@@ -139,7 +136,6 @@
 </div>
 
 <script>
-    // ====== SŁOWNIK TŁUMACZEŃ ======
     const dict = {
         pl: {
             schedule: "Czwartek (20.00-1.00)<br>Piątek (21.00-2.00)<br>Niedziela (21.00-2.00)",
@@ -252,7 +248,6 @@
         checkInputs();
     }
 
-    // ====== KONFIGURACJA ======
     const GIST_ID = 'c3050f88e17d6e1ec9e86bdbea6277e0'; 
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxJ1_L6d8lFs8scNEiqd0kSKwm9tooJWr2sPrPlOsne_8zFB3ZTuBUgidpz9E-uGJ5U/exec';
     
@@ -295,24 +290,32 @@
         return str.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
     }
 
-    // --- TRYB WYSZUKIWANIA (Podpięty pod Body) ---
+    // ZMIENNA BLOKUJĄCA WIDMOWE KLIKNIĘCIA
+    let isFocusing = false;
+
+    // --- TRYB WYSZUKIWANIA ---
     szukajInput.addEventListener('focus', () => {
-        // Aplikujemy klasę do BODY, co natychmiast ukryje wszystkie zbędne elementy HTML za pomocą CSS
+        isFocusing = true; // Zabezpieczamy przed natychmiastowym zamknięciem
+        
         document.body.classList.add('search-focus-mode');
         
         if (szukajInput.value.trim().length > 0) {
             szukajInput.dispatchEvent(new Event('input')); 
         }
         
-        // Z uwagi na usunięcie górnych elementów, pole naturalnie wędruje na samą górę.
-        // scrollTo(0,0) upewnia się tylko, że przeglądarka nie zostanie w połowie starego scrolla.
         setTimeout(() => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }, 100);
+
+        // Zdejmujemy blokadę zamknięcia po 400ms (czas na wyjechanie klawiatury ekranowej)
+        setTimeout(() => {
+            isFocusing = false;
+        }, 400);
     });
 
     document.addEventListener('click', (e) => {
-        // Zamykanie wyszukiwarki, jeśli kliknięto poza nią (np. w tło)
+        if (isFocusing) return; // Jeśli animacja trwa, ignorujemy kliknięcie z tła
+        
         if (!e.target.closest('#searchInputGroup')) {
             document.body.classList.remove('search-focus-mode');
             suggestionsBox.style.display = 'none';
@@ -352,7 +355,7 @@
                     szukajInput.value = song.title;
                     isSelectedFromDb = true; 
                     suggestionsBox.style.display = 'none';
-                    document.body.classList.remove('search-focus-mode'); // Zamyka pełny ekran
+                    document.body.classList.remove('search-focus-mode'); 
                     checkInputs();
                 });
                 
@@ -422,7 +425,6 @@
         submitBtn.disabled = true;
         submitBtn.textContent = d.btnSending;
 
-        // Wymuszamy odświeżenie graficzne przed ciężką operacją sieciową
         await new Promise(resolve => setTimeout(resolve, 50));
 
         let summaryHtml = `${d.sumPerformer} <b>${imieInput.value.trim()}</b><br>${d.sumSong} <b>${szukajInput.value.trim()}</b>`;
@@ -436,7 +438,7 @@
                 method: 'POST',
                 mode: 'no-cors', 
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({ 
+                body: newSearchParams({ 
                     tytul: szukajInput.value.trim(),
                     url: ytLinkInput.value.trim(),
                     imie: imieInput.value.trim(), 
