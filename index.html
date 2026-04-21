@@ -42,6 +42,9 @@
         /* --- TRYB WYSZUKIWANIA (FOCUS MODE) --- */
         .search-active .hide-in-search { display: none !important; }
         
+        /* ROZWIĄZANIE PROBLEMU PRZEWIJANIA: Dajemy sztuczną przestrzeń na dole, by przeglądarka mogła docisnąć pole do góry */
+        #formContent.search-active { padding-bottom: 65vh; }
+        
         button { background-color: #bb86fc; color: #000; font-weight: bold; font-size: 18px; padding: 16px; border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-top: 10px; }
         button:active { background-color: #9965f4; transform: scale(0.98); }
         button:disabled { background-color: #555; color: #888; cursor: not-allowed; }
@@ -228,7 +231,6 @@
         document.getElementById('kod').placeholder = d.plcKod;
         
         document.getElementById('lblUrodziny').textContent = d.lblUrodziny;
-        // UWAGA: Użyto innerHTML aby zachować wstawione w kodzie łamanie tekstu <br> i pogrubienia <b>
         document.getElementById('extraInfoText').innerHTML = d.extraInfo;
 
         if (suggestionsBox.querySelector('.no-results')) {
@@ -289,12 +291,12 @@
             szukajInput.dispatchEvent(new Event('input')); 
         }
         
-        // Płynne przewijanie do pola wyszukiwania (z małym opóźnieniem na wysunięcie klawiatury mobilnej)
+        // Płynne przewijanie do pola wyszukiwania z użyciem precyzyjnej wyliczanki
         setTimeout(() => {
-            const yOffset = -20; // Lekki margines od góry ekranu
+            const yOffset = -15; // Zostawiamy malutki margines 15px nad etykietą "Tytuł Piosenki"
             const y = searchInputGroup.getBoundingClientRect().top + window.scrollY + yOffset;
             window.scrollTo({ top: y, behavior: 'smooth' });
-        }, 300);
+        }, 350);
     });
 
     document.addEventListener('click', (e) => {
@@ -407,7 +409,7 @@
         submitBtn.disabled = true;
         submitBtn.textContent = d.btnSending;
 
-        // Wymuszamy odświeżenie graficzne przycisku przed ciężką operacją sieciową (zapobiega to zacięciu napisu)
+        // Wymuszamy odświeżenie graficzne przed ciężką operacją sieciową
         await new Promise(resolve => setTimeout(resolve, 50));
 
         let summaryHtml = `${d.sumPerformer} <b>${imieInput.value.trim()}</b><br>${d.sumSong} <b>${szukajInput.value.trim()}</b>`;
