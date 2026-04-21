@@ -418,54 +418,61 @@
 
     submitBtn.addEventListener('click', () => {
         const d = dict[curLang];
-        // 1. Natychmiastowa zmiana wyglądu przycisku
+        
+        // 1. Zmieniamy tekst natychmiast
         submitBtn.disabled = true;
         submitBtn.textContent = d.btnSending;
 
-        // 2. Gwarantowane odświeżenie ekranu (przenosimy całą ciężką pracę do osobnego "wątku" za pomocą setTimeout)
-        setTimeout(async () => {
-            let summaryHtml = `${d.sumPerformer} <b>${imieInput.value.trim()}</b><br>${d.sumSong} <b>${szukajInput.value.trim()}</b>`;
-            if (ytLinkInput.value.trim()) summaryHtml += `<br>${d.sumYt}`;
-            if (urodzinyCheck.checked) summaryHtml += `<br>${d.sumBday}`;
-            if (kodInput.value.trim()) summaryHtml += `<br>${d.sumCode} ${kodInput.value.trim().toUpperCase()}</i>`;
-            successSummary.innerHTML = summaryHtml;
-
-            try {
-                await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', 
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({ 
-                        tytul: szukajInput.value.trim(),
-                        url: ytLinkInput.value.trim(),
-                        imie: imieInput.value.trim(), 
-                        narodowosc: narodowoscInput.value.trim(),
-                        kod: kodInput.value.trim().toUpperCase(),
-                        urodziny: urodzinyCheck.checked
-                    })
-                });
-
-                successMsg.style.display = 'block';
-                document.getElementById('formContent').style.display = 'none';
+        // 2. Podwójne zapytanie o klatkę obrazu. 
+        // Pierwsze mówi: "Zaraz będę rysować". 
+        // Drugie mówi: "Poczekaj aż narysujesz przycisk, i DOPIERO TERAZ odpal wysyłanie".
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(async () => {
                 
-                setTimeout(() => {
-                    successMsg.style.display = 'none';
-                    document.getElementById('formContent').style.display = 'flex';
-                    szukajInput.value = '';
-                    ytLinkInput.value = '';
-                    imieInput.value = '';
-                    narodowoscInput.value = '';
-                    kodInput.value = '';
-                    urodzinyCheck.checked = false;
-                    isSelectedFromDb = false;
-                    checkInputs();
-                }, 8000);
+                let summaryHtml = `${d.sumPerformer} <b>${imieInput.value.trim()}</b><br>${d.sumSong} <b>${szukajInput.value.trim()}</b>`;
+                if (ytLinkInput.value.trim()) summaryHtml += `<br>${d.sumYt}`;
+                if (urodzinyCheck.checked) summaryHtml += `<br>${d.sumBday}`;
+                if (kodInput.value.trim()) summaryHtml += `<br>${d.sumCode} ${kodInput.value.trim().toUpperCase()}</i>`;
+                successSummary.innerHTML = summaryHtml;
 
-            } catch (error) {
-                submitBtn.textContent = d.btnErr;
-                setTimeout(() => { checkInputs(); }, 3000);
-            }
-        }, 150); // 150ms daje każdej przeglądarce wystarczająco dużo czasu na pokazanie "Wysyłanie... ⏳"
+                try {
+                    await fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        mode: 'no-cors', 
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({ 
+                            tytul: szukajInput.value.trim(),
+                            url: ytLinkInput.value.trim(),
+                            imie: imieInput.value.trim(), 
+                            narodowosc: narodowoscInput.value.trim(),
+                            kod: kodInput.value.trim().toUpperCase(),
+                            urodziny: urodzinyCheck.checked
+                        })
+                    });
+
+                    successMsg.style.display = 'block';
+                    document.getElementById('formContent').style.display = 'none';
+                    
+                    setTimeout(() => {
+                        successMsg.style.display = 'none';
+                        document.getElementById('formContent').style.display = 'flex';
+                        szukajInput.value = '';
+                        ytLinkInput.value = '';
+                        imieInput.value = '';
+                        narodowoscInput.value = '';
+                        kodInput.value = '';
+                        urodzinyCheck.checked = false;
+                        isSelectedFromDb = false;
+                        checkInputs();
+                    }, 8000);
+
+                } catch (error) {
+                    submitBtn.textContent = d.btnErr;
+                    setTimeout(() => { checkInputs(); }, 3000);
+                }
+
+            });
+        });
     });
 
     setLanguage('pl');
