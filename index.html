@@ -23,12 +23,27 @@
         .checkbox-container label { margin: 0; cursor: pointer; font-size: 16px; color: white; flex: 1; }
         .checkbox-container input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: #bb86fc; }
 
-        .suggestions-box { position: absolute; bottom: 100%; top: auto; left: 0; right: 0; background: #2c2c2c; border-radius: 8px; box-shadow: 0 -4px 12px rgba(0,0,0,0.5); max-height: 250px; overflow-y: auto; z-index: 10; display: none; margin-bottom: 5px; border: 1px solid #444; }
-        .suggestion-item { padding: 12px 15px; border-bottom: 1px solid #3a3a3a; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .suggestion-item:last-child { border-bottom: none; }
-        .suggestion-item:active { background: #3a3a3a; }
-        
         .input-group { position: relative; display: flex; flex-direction: column;}
+        
+        /* --- NOWY WYGLĄD LISTY PODPOWIEDZI --- */
+        .suggestions-box { 
+            background: #252525; border-radius: 8px; box-shadow: 0 8px 16px rgba(0,0,0,0.6); 
+            max-height: 55vh; overflow-y: auto; display: none; margin-top: 8px; border: 1px solid #444; 
+        }
+        .suggestion-item { 
+            padding: 16px 15px; border-bottom: 1px solid #333; display: flex; align-items: center; 
+            cursor: pointer; font-size: 16px; color: #e0e0e0; transition: background 0.2s;
+        }
+        .suggestion-item:hover, .suggestion-item:active { background: #3a3a3a; }
+        .suggestion-item:last-child { border-bottom: none; }
+        
+        .no-results {
+            padding: 20px 15px; text-align: center; color: #ff5252; font-size: 15px; line-height: 1.4;
+        }
+        
+        /* --- TRYB WYSZUKIWANIA (FOCUS MODE) --- */
+        /* Klasa dodawana do kontenera formularza podczas wpisywania tytułu */
+        .search-active .hide-in-search { display: none !important; }
         
         button { background-color: #bb86fc; color: #000; font-weight: bold; font-size: 18px; padding: 16px; border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-top: 10px; }
         button:active { background-color: #9965f4; transform: scale(0.98); }
@@ -38,12 +53,12 @@
         #successMsg { color: #4CAF50; display: none; font-size: 16px; padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; margin-bottom: 20px; }
         #successSummary { margin-top: 12px; padding: 12px; background: rgba(0, 0, 0, 0.25); border-radius: 8px; color: #e0e0e0; font-size: 14px; text-align: left; line-height: 1.6; border: 1px solid rgba(76, 175, 80, 0.2); }
         #formContent { display: flex; flex-direction: column; gap: 15px; width: 100%; }
-        #ytGroup { display: none; background: rgba(255, 82, 82, 0.05); padding: 10px; border-radius: 8px; border: 1px dashed #ff5252; }
+        #ytGroup { display: none; background: rgba(255, 82, 82, 0.05); padding: 15px; border-radius: 8px; border: 1px dashed #ff5252; margin-top: 5px; }
         
-        #searchYTHelper { margin: 0; padding: 0 16px; background: #ff0000; color: white; font-size: 16px; font-weight: bold; flex-shrink: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; border: none; }
+        /* Przycisk YT domyślnie ukryty, pojawia się w JS gdy brak wyników */
+        #searchYTHelper { margin: 0; padding: 0 16px; background: #ff0000; color: white; font-size: 16px; font-weight: bold; flex-shrink: 0; border-radius: 8px; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; border: none; display: none; }
         #searchYTHelper:hover:not(:disabled) { background: #d50000; }
         #searchYTHelper:active:not(:disabled) { transform: scale(0.95); }
-        #searchYTHelper:disabled { background: #555; color: #888; cursor: not-allowed; opacity: 0.7; }
     </style>
 </head>
 <body>
@@ -68,42 +83,42 @@
     </div>
 
     <div id="formContent">
-        <div class="input-group">
+        <div class="input-group" id="searchInputGroup">
             <label for="szukaj" id="lblSzukaj">Tytuł Piosenki (Wymagane)</label>
             <div style="display: flex; gap: 8px;">
                 <input type="text" id="szukaj" placeholder="Zacznij wpisywać..." autocomplete="off" style="flex: 1;">
                 <button type="button" id="searchYTHelper" title="Szukaj utworu na YouTube">YT 🔍</button>
             </div>
             <div id="suggestions" class="suggestions-box"></div>
-            <small id="dbWarning" style="color: #ff5252; display: none; margin-top: 8px;">Wybierz z listy(sprawdź literówki) lub wklej link poniżej</small>
         </div>
 
-        <div class="input-group" id="ytGroup">
-            <label for="ytLink" style="color: #ff5252;" id="lblYtLink">Link do YouTube</label>
+        <div class="input-group hide-in-search" id="ytGroup">
+            <label for="ytLink" style="color: #ff5252; margin-bottom: 5px;" id="lblYtLink">Link do YouTube</label>
+            <small id="dbWarning" style="color: #ffaaaa; margin-bottom: 10px; display: block; font-size: 13px;">Wklej link do wersji Karaoke z YouTube poniżej:</small>
             <input type="text" id="ytLink" placeholder="Wklej link do wideo..." autocomplete="off" style="width: 100%; border-color: #ff5252; background: #222; box-sizing: border-box;">
         </div>
 
-        <div class="input-group">
+        <div class="input-group hide-in-search">
             <label for="imie" id="lblImie">Twoje lub Wasze imiona (Wymagane)</label>
             <input type="text" id="imie" placeholder="Wpisz imię..." autocomplete="off">
         </div>
 
-        <div class="input-group">
+        <div class="input-group hide-in-search">
             <label for="narodowosc" id="lblNarodowosc">Narodowość (Opcjonalnie)</label>
             <input type="text" id="narodowosc" placeholder="Np. Polska, UK, Spain..." autocomplete="off">
         </div>
 
-        <div class="input-group">
+        <div class="input-group hide-in-search">
             <label for="kod" id="lblKod">Kod Fast Pass / VIP (Opcjonalnie)</label>
             <input type="text" id="kod" placeholder="Wpisz 6-znakowy kod" maxlength="6" style="text-transform: uppercase;" autocomplete="off">
         </div>
 
-        <div class="checkbox-container" onclick="document.getElementById('urodziny').click();">
+        <div class="checkbox-container hide-in-search" onclick="document.getElementById('urodziny').click();">
             <label for="urodziny" id="lblUrodziny">Mam dzisiaj urodziny! 🎂</label>
             <input type="checkbox" id="urodziny" onclick="event.stopPropagation();">
         </div>
 
-        <button id="submitBtn" disabled>Wybierz utwór z bazy 🛑</button>
+        <button id="submitBtn" class="hide-in-search" disabled>Wybierz utwór z bazy 🛑</button>
     </div>
 </div>
 
@@ -119,8 +134,8 @@
             lblSzukaj: "Tytuł Piosenki (Wymagane)",
             plcSzukaj: "Zacznij wpisywać...",
             ytHelperTitle: "Szukaj utworu na YouTube",
-            ytHelperTitleDis: "Utwór z bazy - brak potrzeby wyszukiwania",
-            dbWarning: "Wybierz z listy(sprawdź literówki) lub wklej link poniżej",
+            noResults: "⚠️ Brak wyników. Sprawdź literówki!<br><br>Jeśli utworu nie ma w bazie, użyj przycisku <b>YT 🔍</b> obok i wklej nam link.",
+            dbWarning: "Wklej link do wersji Karaoke z YouTube poniżej:",
             lblYtLink: "Link do YouTube",
             plcYtLink: "Wklej link do wideo...",
             lblImie: "Twoje lub Wasze imiona (Wymagane)",
@@ -152,8 +167,8 @@
             lblSzukaj: "Song Title (Required)",
             plcSzukaj: "Start typing...",
             ytHelperTitle: "Search song on YouTube",
-            ytHelperTitleDis: "Song from database - no search needed",
-            dbWarning: "Choose from the list(check for typos) or paste the link below",
+            noResults: "⚠️ No results. Please check for typos!<br><br>If the song is missing, use the <b>YT 🔍</b> button and paste the link.",
+            dbWarning: "Paste the YouTube Karaoke link below:",
             lblYtLink: "YouTube Link",
             plcYtLink: "Paste the video link...",
             lblImie: "Your name(s) (Required)",
@@ -194,7 +209,7 @@
         
         document.getElementById('lblSzukaj').textContent = d.lblSzukaj;
         document.getElementById('szukaj').placeholder = d.plcSzukaj;
-        document.getElementById('searchYTHelper').title = isSelectedFromDb ? d.ytHelperTitleDis : d.ytHelperTitle;
+        document.getElementById('searchYTHelper').title = d.ytHelperTitle;
         document.getElementById('dbWarning').textContent = d.dbWarning;
         
         document.getElementById('lblYtLink').textContent = d.lblYtLink;
@@ -211,7 +226,12 @@
         
         document.getElementById('lblUrodziny').textContent = d.lblUrodziny;
 
-        checkInputs(); // Odświeża przycisk "Wyślij" żeby dostał odpowiedni tekst w nowym języku
+        // Odśwież tłumaczenie komunikatu o błędzie, jeśli jest widoczny
+        if (suggestionsBox.querySelector('.no-results')) {
+            suggestionsBox.querySelector('.no-results').innerHTML = d.noResults;
+        }
+
+        checkInputs();
     }
 
     // ====== KONFIGURACJA ======
@@ -222,9 +242,9 @@
     let isSelectedFromDb = false;
 
     const szukajInput = document.getElementById('szukaj');
+    const searchInputGroup = document.getElementById('searchInputGroup');
     const ytLinkInput = document.getElementById('ytLink');
     const ytGroup = document.getElementById('ytGroup');
-    const dbWarning = document.getElementById('dbWarning');
     const searchYTHelper = document.getElementById('searchYTHelper');
 
     const imieInput = document.getElementById('imie');
@@ -258,6 +278,24 @@
         return str.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
     }
 
+    // --- TRYB WYSZUKIWANIA (Zarządzanie Fokusem) ---
+    szukajInput.addEventListener('focus', () => {
+        formContent.classList.add('search-active');
+        if (szukajInput.value.trim().length > 0) {
+            szukajInput.dispatchEvent(new Event('input')); // Wymuś pokazanie listy
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        // Zamykanie trybu wyszukiwania, jeśli kliknięto poza obszarem pola wyszukiwarki/listy
+        if (!e.target.closest('#searchInputGroup')) {
+            formContent.classList.remove('search-active');
+            suggestionsBox.style.display = 'none';
+            checkInputs(); 
+        }
+    });
+
+    // --- LOGIKA WYSZUKIWANIA ---
     szukajInput.addEventListener('input', () => {
         isSelectedFromDb = false; 
         const rawQuery = szukajInput.value;
@@ -267,6 +305,7 @@
         
         if (queryWords.length === 0) {
             suggestionsBox.style.display = 'none';
+            searchYTHelper.style.display = 'none'; // Ukryj przycisk YT
             checkInputs();
             return;
         }
@@ -274,26 +313,36 @@
         const matches = baza.filter(s => {
             const targetStr = normalizeText(s.title);
             return queryWords.every(word => targetStr.includes(word));
-        }).slice(0, 8);
+        }).slice(0, 15); // Zwiększyłem limit, bo mamy więcej miejsca!
         
         if (matches.length > 0) {
             suggestionsBox.style.display = 'block';
+            searchYTHelper.style.display = 'none'; // Ukryj przycisk YT - znaleziono piosenki
+            
             matches.forEach(song => {
                 const div = document.createElement('div');
                 div.className = 'suggestion-item';
-                div.innerHTML = `<span>${song.title}</span>`;
+                div.innerHTML = `🎵 <span>${song.title}</span>`;
                 
                 div.addEventListener('click', () => {
                     szukajInput.value = song.title;
                     isSelectedFromDb = true; 
                     suggestionsBox.style.display = 'none';
+                    formContent.classList.remove('search-active'); // Zakończ tryb focusu
                     checkInputs();
                 });
                 
                 suggestionsBox.appendChild(div);
             });
         } else {
-            suggestionsBox.style.display = 'none';
+            // BRAK WYNIKÓW - Pokazujemy komunikat i przycisk YT
+            suggestionsBox.style.display = 'block';
+            searchYTHelper.style.display = 'flex'; // Pokaż przycisk YT
+            
+            const div = document.createElement('div');
+            div.className = 'no-results';
+            div.innerHTML = dict[curLang].noResults;
+            suggestionsBox.appendChild(div);
         }
         checkInputs();
     });
@@ -301,10 +350,10 @@
     searchYTHelper.addEventListener('click', () => {
         const query = szukajInput.value.trim() || 'karaoke';
         window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(query + ' karaoke')}`, '_blank');
-    });
-
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.input-group')) suggestionsBox.style.display = 'none';
+        // Po kliknięciu w YT, automatycznie zamykamy tryb wyszukiwania by pokazać pole na link
+        formContent.classList.remove('search-active');
+        suggestionsBox.style.display = 'none';
+        checkInputs();
     });
 
     function checkInputs() {
@@ -321,22 +370,14 @@
             }
         }
 
-        if (isSelectedFromDb) {
-            searchYTHelper.disabled = true;
-            searchYTHelper.title = d.ytHelperTitleDis;
-        } else {
-            searchYTHelper.disabled = false;
-            searchYTHelper.title = d.ytHelperTitle;
-        }
-
         const ytLinkVal = ytLinkInput.value.trim();
         const hasValidYtLink = ytLinkVal.length > 0 && (ytLinkVal.includes('youtube.com') || ytLinkVal.includes('youtu.be'));
 
+        // Wyświetlanie pola "Wklej link", gdy tytuł jest wpisany, ale NIE wybrano z bazy.
+        // Działa tylko poza trybem wyszukiwania (dzięki .hide-in-search chroniącemu wizualny porządek)
         if (hasTitle && !isSelectedFromDb) {
-            dbWarning.style.display = 'block';
             ytGroup.style.display = 'flex';
         } else {
-            dbWarning.style.display = 'none';
             ytGroup.style.display = 'none';
             ytLinkInput.value = ''; 
         }
