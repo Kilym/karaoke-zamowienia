@@ -290,13 +290,10 @@
         return str.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
     }
 
-    // ZMIENNA BLOKUJĄCA WIDMOWE KLIKNIĘCIA
     let isFocusing = false;
 
-    // --- TRYB WYSZUKIWANIA ---
     szukajInput.addEventListener('focus', () => {
-        isFocusing = true; // Zabezpieczamy przed natychmiastowym zamknięciem
-        
+        isFocusing = true; 
         document.body.classList.add('search-focus-mode');
         
         if (szukajInput.value.trim().length > 0) {
@@ -307,14 +304,13 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }, 100);
 
-        // Zdejmujemy blokadę zamknięcia po 400ms (czas na wyjechanie klawiatury ekranowej)
         setTimeout(() => {
             isFocusing = false;
         }, 400);
     });
 
     document.addEventListener('click', (e) => {
-        if (isFocusing) return; // Jeśli animacja trwa, ignorujemy kliknięcie z tła
+        if (isFocusing) return; 
         
         if (!e.target.closest('#searchInputGroup')) {
             document.body.classList.remove('search-focus-mode');
@@ -438,7 +434,8 @@
                 method: 'POST',
                 mode: 'no-cors', 
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: newSearchParams({ 
+                // POPRAWIONA LITERÓWKA: new URLSearchParams
+                body: new URLSearchParams({ 
                     tytul: szukajInput.value.trim(),
                     url: ytLinkInput.value.trim(),
                     imie: imieInput.value.trim(), 
