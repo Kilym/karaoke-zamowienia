@@ -25,6 +25,7 @@
 
         .input-group { position: relative; display: flex; flex-direction: column;}
         
+        /* --- WYGLĄD LISTY PODPOWIEDZI --- */
         .suggestions-box { 
             background: #252525; border-radius: 8px; box-shadow: 0 8px 16px rgba(0,0,0,0.6); 
             max-height: 60vh; overflow-y: auto; display: none; margin-top: 8px; border: 1px solid #444; 
@@ -38,7 +39,7 @@
         
         .no-results { padding: 20px 15px; text-align: center; color: #ff5252; font-size: 15px; line-height: 1.4; }
         
-        /* --- TRYB WYSZUKIWANIA --- */
+        /* --- TRYB WYSZUKIWANIA (Natywny Focus Mode) --- */
         body.search-focus-mode .hide-in-search,
         body.search-focus-mode #txtTitle,
         body.search-focus-mode #txtSchedule,
@@ -67,6 +68,8 @@
         #ytGroup { display: none; background: rgba(255, 82, 82, 0.05); padding: 15px; border-radius: 8px; border: 1px dashed #ff5252; margin-top: 5px; }
         
         #searchYTHelper { margin: 0; padding: 0 16px; background: #ff0000; color: white; font-size: 16px; font-weight: bold; flex-shrink: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; border: none; display: none; }
+        #searchYTHelper:hover:not(:disabled) { background: #d50000; }
+        #searchYTHelper:active:not(:disabled) { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -127,22 +130,12 @@
         </div>
 
         <button id="submitBtn" class="hide-in-search" disabled>Wybierz utwór z bazy 🛑</button>
+        
         <div id="extraInfoText" class="extra-info-text hide-in-search"></div>
     </div>
 </div>
 
 <script>
-    // --- KONFIGURACJA I ZMIENNE ---
-    const GIST_ID = 'c3050f88e17d6e1ec9e86bdbea6277e0'; 
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxJ1_L6d8lFs8scNEiqd0kSKwm9tooJWr2sPrPlOsne_8zFB3ZTuBUgidpz9E-uGJ5U/exec';
-    
-    let baza = [];
-    let isSelectedFromDb = false;
-    let isSending = false; // FLAGI ZAPOBIEGAJĄCA NADPISYWANIU PRZYCISKU
-    let isFocusing = false;
-    let curLang = 'pl';
-
-    // Słownik tłumaczeń (bez zmian)
     const dict = {
         pl: {
             schedule: "Czwartek (20.00-1.00)<br>Piątek (21.00-2.00)<br>Niedziela (21.00-2.00)",
@@ -214,18 +207,177 @@
         }
     };
 
-    const szukajInput = document.getElementById('szukaj');
-    const ytLinkInput = document.getElementById('ytLink');
-    const imieInput = document.getElementById('imie');
-    const submitBtn = document.getElementById('submitBtn');
-    const suggestionsBox = document.getElementById('suggestions');
+    let curLang = 'pl';
 
-    // --- FUNKCJE LOGICZNE ---
+    function setLanguage(lang) {
+        curLang = lang;
+        document.getElementById('btnPl').classList.toggle('active', lang === 'pl');
+        document.getElementById('btnEn').classList.toggle('active', lang === 'en');
+        document.documentElement.lang = lang;
+
+        const d = dict[lang];
+        document.getElementById('txtSchedule').innerHTML = d.schedule;
+        if(document.getElementById('loadingMsg').textContent.includes('⏳')) document.getElementById('loadingMsg').textContent = d.loading;
+        document.getElementById('txtSuccessTitle').textContent = d.successTitle;
+        document.getElementById('txtSuccessSub').textContent = d.successSub;
+        
+        document.getElementById('lblSzukaj').textContent = d.lblSzukaj;
+        document.getElementById('szukaj').placeholder = d.plcSzukaj;
+        document.getElementById('searchYTHelper').title = d.ytHelperTitle;
+        document.getElementById('dbWarning').textContent = d.dbWarning;
+        
+        document.getElementById('lblYtLink').textContent = d.lblYtLink;
+        document.getElementById('ytLink').placeholder = d.plcYtLink;
+        
+        document.getElementById('lblImie').textContent = d.lblImie;
+        document.getElementById('imie').placeholder = d.plcImie;
+        
+        document.getElementById('lblNarodowosc').textContent = d.lblNarodowosc;
+        document.getElementById('narodowosc').placeholder = d.plcNarodowosc;
+        
+        document.getElementById('lblKod').textContent = d.lblKod;
+        document.getElementById('kod').placeholder = d.plcKod;
+        
+        document.getElementById('lblUrodziny').textContent = d.lblUrodziny;
+        document.getElementById('extraInfoText').innerHTML = d.extraInfo;
+
+        if (suggestionsBox.querySelector('.no-results')) {
+            suggestionsBox.querySelector('.no-results').innerHTML = d.noResults;
+        }
+
+        checkInputs();
+    }
+
+    const GIST_ID = 'c3050f88e17d6e1ec9e86bdbea6277e0'; 
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxJ1_L6d8lFs8scNEiqd0kSKwm9tooJWr2sPrPlOsne_8zFB3ZTuBUgidpz9E-uGJ5U/exec';
+    
+    let baza = [];
+    let isSelectedFromDb = false;
+
+    const szukajInput = document.getElementById('szukaj');
+    const searchInputGroup = document.getElementById('searchInputGroup');
+    const ytLinkInput = document.getElementById('ytLink');
+    const ytGroup = document.getElementById('ytGroup');
+    const searchYTHelper = document.getElementById('searchYTHelper');
+
+    const imieInput = document.getElementById('imie');
+    const narodowoscInput = document.getElementById('narodowosc');
+    const kodInput = document.getElementById('kod');
+    const urodzinyCheck = document.getElementById('urodziny');
+    const suggestionsBox = document.getElementById('suggestions');
+    const submitBtn = document.getElementById('submitBtn');
+    const loadingMsg = document.getElementById('loadingMsg');
+    
+    const successMsg = document.getElementById('successMsg');
+    const successSummary = document.getElementById('successSummary'); 
+
+    async function loadBaza() {
+        try {
+            const response = await fetch(`https://api.github.com/gists/${GIST_ID}`);
+            const data = await response.json();
+            baza = JSON.parse(data.files['baza.json'].content);
+            loadingMsg.style.display = 'none';
+            checkInputs();
+        } catch (err) {
+            loadingMsg.innerHTML = dict[curLang].loadingErr;
+            loadingMsg.style.color = "#ff5252";
+            checkInputs();
+        }
+    }
+    loadBaza();
+
+    function normalizeText(str) {
+        return str.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+    }
+
+    let isFocusing = false;
+
+    szukajInput.addEventListener('focus', () => {
+        isFocusing = true; 
+        document.body.classList.add('search-focus-mode');
+        
+        if (szukajInput.value.trim().length > 0) {
+            szukajInput.dispatchEvent(new Event('input')); 
+        }
+        
+        setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 100);
+
+        setTimeout(() => {
+            isFocusing = false;
+        }, 400);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (isFocusing) return; 
+        
+        if (!e.target.closest('#searchInputGroup')) {
+            document.body.classList.remove('search-focus-mode');
+            suggestionsBox.style.display = 'none';
+            checkInputs(); 
+        }
+    });
+
+    szukajInput.addEventListener('input', () => {
+        isSelectedFromDb = false; 
+        const rawQuery = szukajInput.value;
+        suggestionsBox.innerHTML = '';
+        
+        const queryWords = normalizeText(rawQuery).split(' ').filter(w => w.length > 0);
+        
+        if (queryWords.length === 0) {
+            suggestionsBox.style.display = 'none';
+            searchYTHelper.style.display = 'none'; 
+            checkInputs();
+            return;
+        }
+
+        const matches = baza.filter(s => {
+            const targetStr = normalizeText(s.title);
+            return queryWords.every(word => targetStr.includes(word));
+        }).slice(0, 15);
+        
+        if (matches.length > 0) {
+            suggestionsBox.style.display = 'block';
+            searchYTHelper.style.display = 'none'; 
+            
+            matches.forEach(song => {
+                const div = document.createElement('div');
+                div.className = 'suggestion-item';
+                div.innerHTML = `🎵 <span>${song.title}</span>`;
+                
+                div.addEventListener('click', () => {
+                    szukajInput.value = song.title;
+                    isSelectedFromDb = true; 
+                    suggestionsBox.style.display = 'none';
+                    document.body.classList.remove('search-focus-mode'); 
+                    checkInputs();
+                });
+                
+                suggestionsBox.appendChild(div);
+            });
+        } else {
+            suggestionsBox.style.display = 'block';
+            searchYTHelper.style.display = 'flex'; 
+            
+            const div = document.createElement('div');
+            div.className = 'no-results';
+            div.innerHTML = dict[curLang].noResults;
+            suggestionsBox.appendChild(div);
+        }
+        checkInputs();
+    });
+
+    searchYTHelper.addEventListener('click', () => {
+        const query = szukajInput.value.trim() || 'karaoke';
+        window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(query + ' karaoke')}`, '_blank');
+        document.body.classList.remove('search-focus-mode');
+        suggestionsBox.style.display = 'none';
+        checkInputs();
+    });
 
     function checkInputs() {
-        // KLUCZOWA ZMIANA: Jeśli wysyłamy, nie dotykaj przycisku!
-        if (isSending) return;
-
         const d = dict[curLang];
         const titleVal = szukajInput.value.trim();
         const hasTitle = titleVal.length > 0;
@@ -243,9 +395,9 @@
         const hasValidYtLink = ytLinkVal.length > 0 && (ytLinkVal.includes('youtube.com') || ytLinkVal.includes('youtu.be'));
 
         if (hasTitle && !isSelectedFromDb) {
-            document.getElementById('ytGroup').style.display = 'flex';
+            ytGroup.style.display = 'flex';
         } else {
-            document.getElementById('ytGroup').style.display = 'none';
+            ytGroup.style.display = 'none';
             ytLinkInput.value = ''; 
         }
 
@@ -260,31 +412,34 @@
             else { submitBtn.textContent = d.btnDefault; }
         }
     }
+    
+    imieInput.addEventListener('input', checkInputs);
+    ytLinkInput.addEventListener('input', checkInputs);
 
     submitBtn.addEventListener('click', (e) => {
-        const d = dict[curLang];
-
-        // 1. Ustawiamy flagę wysyłania (blokuje checkInputs)
-        isSending = true;
-
-        // 2. Chowanie klawiatury
+        // 1. Zdejmujemy focus (chowa klawiaturę na telefonach)
         if (document.activeElement) document.activeElement.blur();
 
-        // 3. Wizualna zmiana przycisku
+        const d = dict[curLang];
+        
+        // 2. Zmieniamy tekst używając innerHTML i nadajemy szare kolory
         submitBtn.disabled = true;
-        submitBtn.textContent = d.btnSending;
+        submitBtn.innerHTML = d.btnSending;
         submitBtn.style.backgroundColor = "#555";
         submitBtn.style.color = "#888";
 
-        // Wymuszenie odświeżenia
+        // 3. MAGIA: Wymuszenie odświeżenia (Force Reflow)
+        // Pytamy przeglądarkę o wysokość przycisku. Aby ją obliczyć, MUSI go narysować z nowym tekstem!
         void submitBtn.offsetHeight;
 
+        // 4. Czekamy 0.5 sekundy, dając telefonowi pełen luz na wyświetlenie grafiki
         setTimeout(async () => {
+            
             let summaryHtml = `${d.sumPerformer} <b>${imieInput.value.trim()}</b><br>${d.sumSong} <b>${szukajInput.value.trim()}</b>`;
             if (ytLinkInput.value.trim()) summaryHtml += `<br>${d.sumYt}`;
-            if (document.getElementById('urodziny').checked) summaryHtml += `<br>${d.sumBday}`;
-            if (document.getElementById('kod').value.trim()) summaryHtml += `<br>${d.sumCode} ${document.getElementById('kod').value.trim().toUpperCase()}</i>`;
-            document.getElementById('successSummary').innerHTML = summaryHtml;
+            if (urodzinyCheck.checked) summaryHtml += `<br>${d.sumBday}`;
+            if (kodInput.value.trim()) summaryHtml += `<br>${d.sumCode} ${kodInput.value.trim().toUpperCase()}</i>`;
+            successSummary.innerHTML = summaryHtml;
 
             try {
                 await fetch(WEB_APP_URL, {
@@ -295,34 +450,34 @@
                         tytul: szukajInput.value.trim(),
                         url: ytLinkInput.value.trim(),
                         imie: imieInput.value.trim(), 
-                        narodowosc: document.getElementById('narodowosc').value.trim(),
-                        kod: document.getElementById('kod').value.trim().toUpperCase(),
-                        urodziny: document.getElementById('urodziny').checked
+                        narodowosc: narodowoscInput.value.trim(),
+                        kod: kodInput.value.trim().toUpperCase(),
+                        urodziny: urodzinyCheck.checked
                     })
                 });
 
-                document.getElementById('successMsg').style.display = 'block';
+                successMsg.style.display = 'block';
                 document.getElementById('formContent').style.display = 'none';
                 
                 setTimeout(() => {
-                    isSending = false; // Odblokowujemy flagę
-                    document.getElementById('successMsg').style.display = 'none';
+                    successMsg.style.display = 'none';
                     document.getElementById('formContent').style.display = 'flex';
                     szukajInput.value = '';
                     ytLinkInput.value = '';
                     imieInput.value = '';
-                    document.getElementById('narodowosc').value = '';
-                    document.getElementById('kod').value = '';
-                    document.getElementById('urodziny').checked = false;
+                    narodowoscInput.value = '';
+                    kodInput.value = '';
+                    urodzinyCheck.checked = false;
                     isSelectedFromDb = false;
+                    
+                    // Resetujemy style przycisku z powrotem do normy
                     submitBtn.style.backgroundColor = "";
                     submitBtn.style.color = "";
                     checkInputs();
                 }, 8000);
 
             } catch (error) {
-                isSending = false; // Błąd - odblokowujemy flagę
-                submitBtn.textContent = d.btnErr;
+                submitBtn.innerHTML = d.btnErr;
                 submitBtn.style.backgroundColor = "#ff5252";
                 submitBtn.style.color = "#fff";
                 setTimeout(() => { 
@@ -331,117 +486,10 @@
                     checkInputs(); 
                 }, 3000);
             }
-        }, 400); 
+
+        }, 500); // 500ms opóźnienia
     });
 
-    // --- RESZTA FUNKCJI (Baza, Język, Listenery) ---
-
-    function setLanguage(lang) {
-        curLang = lang;
-        document.getElementById('btnPl').classList.toggle('active', lang === 'pl');
-        document.getElementById('btnEn').classList.toggle('active', lang === 'en');
-        const d = dict[lang];
-        document.getElementById('txtSchedule').innerHTML = d.schedule;
-        if(document.getElementById('loadingMsg').textContent.includes('⏳')) document.getElementById('loadingMsg').textContent = d.loading;
-        document.getElementById('txtSuccessTitle').textContent = d.successTitle;
-        document.getElementById('txtSuccessSub').textContent = d.successSub;
-        document.getElementById('lblSzukaj').textContent = d.lblSzukaj;
-        document.getElementById('szukaj').placeholder = d.plcSzukaj;
-        document.getElementById('lblYtLink').textContent = d.lblYtLink;
-        document.getElementById('ytLink').placeholder = d.plcYtLink;
-        document.getElementById('lblImie').textContent = d.lblImie;
-        document.getElementById('imie').placeholder = d.plcImie;
-        document.getElementById('lblNarodowosc').textContent = d.lblNarodowosc;
-        document.getElementById('narodowosc').placeholder = d.plcNarodowosc;
-        document.getElementById('lblKod').textContent = d.lblKod;
-        document.getElementById('kod').placeholder = d.plcKod;
-        document.getElementById('lblUrodziny').textContent = d.lblUrodziny;
-        document.getElementById('extraInfoText').innerHTML = d.extraInfo;
-        checkInputs();
-    }
-
-    async function loadBaza() {
-        try {
-            const response = await fetch(`https://api.github.com/gists/${GIST_ID}`);
-            const data = await response.json();
-            baza = JSON.parse(data.files['baza.json'].content);
-            document.getElementById('loadingMsg').style.display = 'none';
-            checkInputs();
-        } catch (err) {
-            document.getElementById('loadingMsg').innerHTML = dict[curLang].loadingErr;
-            document.getElementById('loadingMsg').style.color = "#ff5252";
-        }
-    }
-
-    szukajInput.addEventListener('focus', () => {
-        isFocusing = true; 
-        document.body.classList.add('search-focus-mode');
-        if (szukajInput.value.trim().length > 0) szukajInput.dispatchEvent(new Event('input')); 
-        setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
-        setTimeout(() => isFocusing = false, 400);
-    });
-
-    document.addEventListener('click', (e) => {
-        if (isFocusing) return; 
-        if (!e.target.closest('#searchInputGroup')) {
-            document.body.classList.remove('search-focus-mode');
-            suggestionsBox.style.display = 'none';
-            checkInputs(); 
-        }
-    });
-
-    szukajInput.addEventListener('input', () => {
-        isSelectedFromDb = false; 
-        const rawQuery = szukajInput.value;
-        suggestionsBox.innerHTML = '';
-        const queryWords = normalizeText(rawQuery).split(' ').filter(w => w.length > 0);
-        if (queryWords.length === 0) {
-            suggestionsBox.style.display = 'none';
-            document.getElementById('searchYTHelper').style.display = 'none'; 
-            checkInputs();
-            return;
-        }
-        const matches = baza.filter(s => {
-            const targetStr = normalizeText(s.title);
-            return queryWords.every(word => targetStr.includes(word));
-        }).slice(0, 15);
-        if (matches.length > 0) {
-            suggestionsBox.style.display = 'block';
-            document.getElementById('searchYTHelper').style.display = 'none'; 
-            matches.forEach(song => {
-                const div = document.createElement('div');
-                div.className = 'suggestion-item';
-                div.innerHTML = `🎵 <span>${song.title}</span>`;
-                div.addEventListener('click', () => {
-                    szukajInput.value = song.title;
-                    isSelectedFromDb = true; 
-                    suggestionsBox.style.display = 'none';
-                    document.body.classList.remove('search-focus-mode'); 
-                    checkInputs();
-                });
-                suggestionsBox.appendChild(div);
-            });
-        } else {
-            suggestionsBox.style.display = 'block';
-            document.getElementById('searchYTHelper').style.display = 'flex'; 
-            const div = document.createElement('div');
-            div.className = 'no-results';
-            div.innerHTML = dict[curLang].noResults;
-            suggestionsBox.appendChild(div);
-        }
-        checkInputs();
-    });
-
-    document.getElementById('searchYTHelper').addEventListener('click', () => {
-        window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(szukajInput.value.trim() + ' karaoke')}`, '_blank');
-        document.body.classList.remove('search-focus-mode');
-        suggestionsBox.style.display = 'none';
-        checkInputs();
-    });
-
-    imieInput.addEventListener('input', checkInputs);
-    ytLinkInput.addEventListener('input', checkInputs);
-    loadBaza();
     setLanguage('pl');
 </script>
 </body>
