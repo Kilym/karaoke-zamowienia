@@ -42,8 +42,15 @@
         /* --- TRYB WYSZUKIWANIA (FOCUS MODE) --- */
         .search-active .hide-in-search { display: none !important; }
         
-        /* ROZWIĄZANIE PROBLEMU PRZEWIJANIA: Dajemy sztuczną przestrzeń na dole, by przeglądarka mogła docisnąć pole do góry */
-        #formContent.search-active { padding-bottom: 120vh; }
+        /* NOWOŚĆ: Znikające elementy górne (Tytuł, Godziny, Języki) w trybie focus */
+        .search-active #txtTitle, 
+        .search-active #txtSchedule, 
+        .search-active .lang-toggle { 
+            display: none !important; 
+        }
+        
+        /* Bezpieczny zapas miejsca na dole dla listy, 50vh w zupełności wystarczy */
+        .container.search-active { padding-bottom: 50vh; }
         
         button { background-color: #bb86fc; color: #000; font-weight: bold; font-size: 18px; padding: 16px; border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-top: 10px; }
         button:active { background-color: #9965f4; transform: scale(0.98); }
@@ -65,7 +72,7 @@
 </head>
 <body>
 
-<div class="container">
+<div class="container" id="appContainer">
     <div class="lang-toggle">
         <button id="btnPl" class="lang-btn active" onclick="setLanguage('pl')">PL</button>
         <button id="btnEn" class="lang-btn" onclick="setLanguage('en')">EN</button>
@@ -247,6 +254,7 @@
     let baza = [];
     let isSelectedFromDb = false;
 
+    const appContainer = document.getElementById('appContainer');
     const szukajInput = document.getElementById('szukaj');
     const searchInputGroup = document.getElementById('searchInputGroup');
     const ytLinkInput = document.getElementById('ytLink');
@@ -286,22 +294,23 @@
 
     // --- TRYB WYSZUKIWANIA I AUTOMATYCZNE PRZEWIJANIE ---
     szukajInput.addEventListener('focus', () => {
-        formContent.classList.add('search-active');
+        // Zamiast dodawać klasę do samego formularza, dodajemy do Głównego Kontenera
+        appContainer.classList.add('search-active');
+        
         if (szukajInput.value.trim().length > 0) {
             szukajInput.dispatchEvent(new Event('input')); 
         }
         
-        // Płynne przewijanie do pola wyszukiwania z użyciem precyzyjnej wyliczanki
+        // Ponieważ nagłówek i godziny zniknęły, wystarczy przewinąć na samą górę ekranu!
+        // Ucinamy problem błędnej matematyki z klawiaturą telefonu.
         setTimeout(() => {
-            const yOffset = -15; // Zostawiamy malutki margines 15px nad etykietą "Tytuł Piosenki"
-            const y = searchInputGroup.getBoundingClientRect().top + window.scrollY + yOffset;
-            window.scrollTo({ top: y, behavior: 'smooth' });
-        }, 350);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 300);
     });
 
     document.addEventListener('click', (e) => {
         if (!e.target.closest('#searchInputGroup')) {
-            formContent.classList.remove('search-active');
+            appContainer.classList.remove('search-active');
             suggestionsBox.style.display = 'none';
             checkInputs(); 
         }
@@ -339,7 +348,7 @@
                     szukajInput.value = song.title;
                     isSelectedFromDb = true; 
                     suggestionsBox.style.display = 'none';
-                    formContent.classList.remove('search-active'); 
+                    appContainer.classList.remove('search-active'); 
                     checkInputs();
                 });
                 
@@ -360,7 +369,7 @@
     searchYTHelper.addEventListener('click', () => {
         const query = szukajInput.value.trim() || 'karaoke';
         window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(query + ' karaoke')}`, '_blank');
-        formContent.classList.remove('search-active');
+        appContainer.classList.remove('search-active');
         suggestionsBox.style.display = 'none';
         checkInputs();
     });
@@ -409,7 +418,6 @@
         submitBtn.disabled = true;
         submitBtn.textContent = d.btnSending;
 
-        // Wymuszamy odświeżenie graficzne przed ciężką operacją sieciową
         await new Promise(resolve => setTimeout(resolve, 50));
 
         let summaryHtml = `${d.sumPerformer} <b>${imieInput.value.trim()}</b><br>${d.sumSong} <b>${szukajInput.value.trim()}</b>`;
