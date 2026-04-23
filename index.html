@@ -20,8 +20,8 @@
         input[type="text"]:focus { border-color: #bb86fc; }
         
         .checkbox-container { display: flex; align-items: center; gap: 10px; background: #2c2c2c; padding: 15px; border-radius: 8px; border: 2px solid #333; cursor: pointer; }
-        .checkbox-container label { margin: 0; cursor: pointer; font-size: 16px; color: white; flex: 1; }
-        .checkbox-container input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: #bb86fc; }
+        .checkbox-container label { margin: 0; cursor: pointer; font-size: 15px; color: white; flex: 1; line-height: 1.3; }
+        .checkbox-container input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: #bb86fc; flex-shrink: 0; }
 
         .input-group { position: relative; display: flex; flex-direction: column;}
         
@@ -127,7 +127,7 @@
         </div>
 
         <div class="checkbox-container hide-in-search" onclick="document.getElementById('urodziny').click();">
-            <label for="urodziny" id="lblUrodziny">Mam dzisiaj urodziny! 🎂</label>
+            <label for="urodziny" id="lblUrodziny">Mam dzisiaj urodziny! Podejdź do dj'a, zaśpiewamy 100 lat 🎂</label>
             <input type="checkbox" id="urodziny" onclick="event.stopPropagation();">
         </div>
 
@@ -158,7 +158,7 @@
             plcNarodowosc: "Np. Polska, UK, Spain...",
             lblKod: "Kod Fast Pass / VIP (Opcjonalnie)",
             plcKod: "Wpisz 6-znakowy kod",
-            lblUrodziny: "Mam dzisiaj urodziny! 🎂",
+            lblUrodziny: "Mam dzisiaj urodziny! Podejdź do dj'a, zaśpiewamy 100 lat 🎂",
             btnDefault: "Wybierz utwór z bazy 🛑",
             btnMissingTitle: "Wpisz tytuł utworu 🛑",
             btnMissingLink: "Wybierz z listy lub dodaj link 🛑",
@@ -193,7 +193,7 @@
             plcNarodowosc: "E.g. Poland, UK, Spain...",
             lblKod: "Fast Pass / VIP Code (Optional)",
             plcKod: "Enter 6-character code",
-            lblUrodziny: "It's my birthday today! 🎂",
+            lblUrodziny: "It's my birthday today! Come to the DJ, we'll sing Happy Birthday 🎂",
             btnDefault: "Choose a song from the database 🛑",
             btnMissingTitle: "Enter the song title 🛑",
             btnMissingLink: "Choose from list or add link 🛑",
@@ -258,7 +258,7 @@
     let baza = [];
     let isSelectedFromDb = false;
     let isFocusing = false;
-    let isSending = false; // <-- Kluczowa flaga blokująca formularz!
+    let isSending = false;
 
     const szukajInput = document.getElementById('szukaj');
     const searchInputGroup = document.getElementById('searchInputGroup');
@@ -383,7 +383,7 @@
     });
 
     function checkInputs() {
-        if (isSending) return; // Zapobiega nadpisaniu przycisku, gdy trwa wysyłanie!
+        if (isSending) return; 
 
         const d = dict[curLang];
         const titleVal = szukajInput.value.trim();
@@ -424,9 +424,9 @@
     ytLinkInput.addEventListener('input', checkInputs);
 
     submitBtn.addEventListener('click', (e) => {
-        isSending = true; // Zabezpieczamy formularz przed zmianami
+        isSending = true; 
         
-        if (document.activeElement) document.activeElement.blur(); // Zdejmujemy focus
+        if (document.activeElement) document.activeElement.blur(); 
 
         const d = dict[curLang];
         
@@ -435,7 +435,7 @@
         submitBtn.style.backgroundColor = "#555";
         submitBtn.style.color = "#888";
 
-        void submitBtn.offsetHeight; // Wymuszenie odświeżenia grafiki
+        void submitBtn.offsetHeight; 
 
         setTimeout(async () => {
             
@@ -463,7 +463,6 @@
                 successMsg.style.display = 'block';
                 document.getElementById('formContent').style.display = 'none';
 
-                // --- LOGIKA ODLICZANIA CZASU ---
                 let timeLeft = 8;
                 redirectTimer.textContent = d.redirect.replace('{s}', timeLeft);
 
@@ -475,8 +474,8 @@
                 }, 1000);
                 
                 setTimeout(() => {
-                    clearInterval(countdown); // Zatrzymujemy odliczanie
-                    isSending = false; // Odblokowujemy formularz
+                    clearInterval(countdown); 
+                    isSending = false; 
 
                     successMsg.style.display = 'none';
                     document.getElementById('formContent').style.display = 'flex';
@@ -494,7 +493,7 @@
                 }, 8000);
 
             } catch (error) {
-                isSending = false; // Błąd - odblokowujemy
+                isSending = false; 
                 submitBtn.innerHTML = d.btnErr;
                 submitBtn.style.backgroundColor = "#ff5252";
                 submitBtn.style.color = "#fff";
