@@ -42,7 +42,7 @@
         
         .no-results { padding: 20px 15px; text-align: center; color: #ff5252; font-size: 15px; line-height: 1.4; }
         
-        /* --- TRYB WYSZUKIWANIA (Natywny Focus Mode) --- */
+        /* --- TRYB WYSZUKIWANIA --- */
         body.search-focus-mode .hide-in-search,
         body.search-focus-mode #txtTitle,
         body.search-focus-mode #txtSchedule,
@@ -249,7 +249,7 @@
         document.getElementById('kod').placeholder = d.plcKod;
         
         document.getElementById('lblUrodziny').textContent = d.lblUrodziny;
-        document.getElementById('urodzinySubText').textContent = d.lblUrodzinySub; // Aktualizacja tłumaczenia dodatkowego tekstu
+        document.getElementById('urodzinySubText').textContent = d.lblUrodzinySub;
         document.getElementById('extraInfoText').innerHTML = d.extraInfo;
 
         if (suggestionsBox.querySelector('.no-results')) {
@@ -266,6 +266,17 @@
     let isSelectedFromDb = false;
     let isFocusing = false;
     let isSending = false;
+
+    // --- IDENTYFIKACJA URZĄDZENIA ---
+    function getDeviceId() {
+        let deviceId = localStorage.getItem('karaoke_device_id');
+        if (!deviceId) {
+            deviceId = 'id-' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('karaoke_device_id', deviceId);
+        }
+        return deviceId;
+    }
+    const currentDeviceId = getDeviceId();
 
     const szukajInput = document.getElementById('szukaj');
     const searchInputGroup = document.getElementById('searchInputGroup');
@@ -286,7 +297,6 @@
     const successSummary = document.getElementById('successSummary'); 
     const redirectTimer = document.getElementById('redirectTimer');
 
-    // Pokazywanie tekstu pod checkboxem urodzin
     urodzinyCheck.addEventListener('change', () => {
         urodzinySubText.style.display = urodzinyCheck.checked ? 'block' : 'none';
     });
@@ -469,7 +479,8 @@
                         imie: imieInput.value.trim(), 
                         narodowosc: narodowoscInput.value.trim(),
                         kod: kodInput.value.trim().toUpperCase(),
-                        urodziny: urodzinyCheck.checked
+                        urodziny: urodzinyCheck.checked,
+                        deviceId: currentDeviceId // <-- WYSYŁKA ID TELEFONU
                     })
                 });
 
@@ -498,7 +509,6 @@
                     narodowoscInput.value = '';
                     kodInput.value = '';
                     
-                    // Resetowanie checkboxa i dodatkowego tekstu
                     urodzinyCheck.checked = false;
                     urodzinySubText.style.display = 'none';
                     
