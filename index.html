@@ -20,8 +20,11 @@
         input[type="text"]:focus { border-color: #bb86fc; }
         
         .checkbox-container { display: flex; align-items: center; gap: 10px; background: #2c2c2c; padding: 15px; border-radius: 8px; border: 2px solid #333; cursor: pointer; }
-        .checkbox-container label { margin: 0; cursor: pointer; font-size: 15px; color: white; flex: 1; line-height: 1.3; }
+        .checkbox-container label { margin: 0; cursor: pointer; font-size: 16px; color: white; flex: 1; line-height: 1.3; }
         .checkbox-container input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: #bb86fc; flex-shrink: 0; }
+
+        /* Dodatkowy tekst o DJ-u */
+        #urodzinySubText { display: none; font-size: 13px; color: #bb86fc; text-align: center; margin-top: -12px; margin-bottom: 5px; line-height: 1.4; font-weight: bold; }
 
         .input-group { position: relative; display: flex; flex-direction: column;}
         
@@ -127,9 +130,10 @@
         </div>
 
         <div class="checkbox-container hide-in-search" onclick="document.getElementById('urodziny').click();">
-            <label for="urodziny" id="lblUrodziny">Mam dzisiaj urodziny! 🎂(Podejdź do dj'a, zaśpiewamy 100 lat)</label>
+            <label for="urodziny" id="lblUrodziny">Mam dzisiaj urodziny! 🎂</label>
             <input type="checkbox" id="urodziny" onclick="event.stopPropagation();">
         </div>
+        <div id="urodzinySubText" class="hide-in-search">Podejdź do dj'a, zaśpiewamy 100 lat</div>
 
         <button id="submitBtn" class="hide-in-search" disabled>Wybierz utwór z bazy 🛑</button>
         
@@ -158,7 +162,8 @@
             plcNarodowosc: "Np. Polska, UK, Spain...",
             lblKod: "Kod Fast Pass / VIP (Opcjonalnie)",
             plcKod: "Wpisz 6-znakowy kod",
-            lblUrodziny: "Mam dzisiaj urodziny! 🎂(Podejdź do dj'a, zaśpiewamy 100 lat)",
+            lblUrodziny: "Mam dzisiaj urodziny! 🎂",
+            lblUrodzinySub: "Podejdź do dj'a, zaśpiewamy 100 lat 🎉",
             btnDefault: "Wybierz utwór z bazy 🛑",
             btnMissingTitle: "Wpisz tytuł utworu 🛑",
             btnMissingLink: "Wybierz z listy lub dodaj link 🛑",
@@ -193,7 +198,8 @@
             plcNarodowosc: "E.g. Poland, UK, Spain...",
             lblKod: "Fast Pass / VIP Code (Optional)",
             plcKod: "Enter 6-character code",
-            lblUrodziny: "It's my birthday today! 🎂(Come to the DJ, we'll sing Happy Birthday)",
+            lblUrodziny: "It's my birthday today! 🎂",
+            lblUrodzinySub: "Come to the DJ, we'll sing Happy Birthday 🎉",
             btnDefault: "Choose a song from the database 🛑",
             btnMissingTitle: "Enter the song title 🛑",
             btnMissingLink: "Choose from list or add link 🛑",
@@ -243,6 +249,7 @@
         document.getElementById('kod').placeholder = d.plcKod;
         
         document.getElementById('lblUrodziny').textContent = d.lblUrodziny;
+        document.getElementById('urodzinySubText').textContent = d.lblUrodzinySub; // Aktualizacja tłumaczenia dodatkowego tekstu
         document.getElementById('extraInfoText').innerHTML = d.extraInfo;
 
         if (suggestionsBox.querySelector('.no-results')) {
@@ -270,6 +277,7 @@
     const narodowoscInput = document.getElementById('narodowosc');
     const kodInput = document.getElementById('kod');
     const urodzinyCheck = document.getElementById('urodziny');
+    const urodzinySubText = document.getElementById('urodzinySubText');
     const suggestionsBox = document.getElementById('suggestions');
     const submitBtn = document.getElementById('submitBtn');
     const loadingMsg = document.getElementById('loadingMsg');
@@ -277,6 +285,11 @@
     const successMsg = document.getElementById('successMsg');
     const successSummary = document.getElementById('successSummary'); 
     const redirectTimer = document.getElementById('redirectTimer');
+
+    // Pokazywanie tekstu pod checkboxem urodzin
+    urodzinyCheck.addEventListener('change', () => {
+        urodzinySubText.style.display = urodzinyCheck.checked ? 'block' : 'none';
+    });
 
     async function loadBaza() {
         try {
@@ -484,7 +497,11 @@
                     imieInput.value = '';
                     narodowoscInput.value = '';
                     kodInput.value = '';
+                    
+                    // Resetowanie checkboxa i dodatkowego tekstu
                     urodzinyCheck.checked = false;
+                    urodzinySubText.style.display = 'none';
+                    
                     isSelectedFromDb = false;
                     
                     submitBtn.style.backgroundColor = "";
