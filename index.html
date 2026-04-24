@@ -101,7 +101,8 @@
             border: none;
         }
         
-        body.search-focus-mode #backFromSearchBtn { display: block !important; }
+        .search-dismiss-text { display: none; color: var(--primary); font-size: 13px; margin-top: 8px; text-align: right; font-weight: bold; opacity: 0.8; }
+        body.search-focus-mode .search-dismiss-text { display: block; }
         
         button.action-btn { background-color: var(--primary); color: var(--btn-text); font-weight: bold; font-size: 20px; padding: 18px; border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s, transform 0.1s; margin-top: 10px; }
         button.action-btn:active { background-color: var(--primary-hover); transform: scale(0.98); }
@@ -125,8 +126,6 @@
 <body>
 
 <div class="container" id="appContainer">
-    <button id="backFromSearchBtn" style="display: none; background: transparent; color: var(--primary); font-size: 18px; font-weight: bold; padding: 0 0 15px 0; margin: 0; border: none; cursor: pointer; text-align: left; box-shadow: none;">⬅ Wróć</button>
-
     <div class="top-controls">
         <div style="width: 24px;"></div> <div class="lang-toggle">
             <button id="btnPl" class="lang-btn active" onclick="setLanguage('pl')">PL</button>
@@ -156,6 +155,7 @@
                 <input type="text" id="szukaj" placeholder="Zacznij wpisywać..." autocomplete="off" style="flex: 1;">
                 <button type="button" id="searchYTHelper" title="Pobierz z YouTube">YT 🔗</button>
             </div>
+            <div id="searchDismissHelper" class="search-dismiss-text">Kliknij obok, aby wrócić ☝️</div>
             <div id="suggestions" class="suggestions-box"></div>
         </div>
 
@@ -213,7 +213,7 @@
             lblSzukaj: "Tytuł Piosenki (Wymagane)",
             plcSzukaj: "Zacznij wpisywać...",
             ytHelperTitle: "Pobierz link z YouTube",
-            noResults: "⚠️ Brak wyników. Sprawdź literówki!<br><br>Jeśli utworu nie ma w bazie, kliknij przycisk <b>YT 🔗</b> obok, a znajdziemy i dopiszemy link za Ciebie!",
+            noResults: "⚠️ Brak wyników. Sprawdź literówki!<br><br>Jeśli utworu nie ma w bazie wpisz dokładnie tytuł i wykonawcę, kliknij przycisk <b>YT 🔗</b> obok, a po chwili dostaniesz listę 10 klipów z YouTube do wyboru",
             dbWarning: "Wklej link do wersji Karaoke z YouTube poniżej:",
             lblYtLink: "Link do YouTube",
             plcYtLink: "Wklej link do wideo...",
@@ -237,7 +237,7 @@
             redirect: "Powrót do formularza za: {s}s",
             birthdayNotice: "Jeżeli Wasza koleżanka, kolega mają urodziny i chcecie im zaśpiewać 100 lat przyjdźcie i powiedzcie nam to, a zrobimy to razem. 🎉",
             extraInfo: "<b>INFORMACJA</b> (dotyczy niedzielnego karaoke):<br><br>Drodzy przyjaciele!<br>Do 23:30 możecie śpiewać piosenki popularne tylko w Waszym kraju.<br>Po 23:30 przełączamy się na anglojęzyczne największe hity 🎤<br>Wpisujcie swoje piosenki, które połączą wszystkich<br>i zmienią Klub INDEKS w jedną wielką imprezę!",
-            btnBack: "⬅ Wróć",
+            dismissHelper: "Kliknij obok, aby wrócić ☝️",
             ytError: "Wystąpił błąd podczas szukania na YT.",
             ytSelectHeader: "Wybierz wersję z YouTube:"
         },
@@ -250,7 +250,7 @@
             lblSzukaj: "Song Title (Required)",
             plcSzukaj: "Start typing...",
             ytHelperTitle: "Get YouTube link",
-            noResults: "⚠️ No results. Please check for typos!<br><br>If the song is missing, click the <b>YT 🔗</b> button and we'll find the link for you!",
+            noResults: "⚠️ No results. Please check for typos!<br><br>If the song is missing, type the exact title and artist, click the <b>YT 🔗</b> button next to it, and shortly you will get a list of 10 YouTube clips to choose from.",
             dbWarning: "Paste the YouTube Karaoke link below:",
             lblYtLink: "YouTube Link",
             plcYtLink: "Paste the video link...",
@@ -274,7 +274,7 @@
             redirect: "Returning to form in: {s}s",
             birthdayNotice: "If your friend is having a birthday and you want to sing Happy Birthday to them, come and tell us, and we'll do it together. 🎉",
             extraInfo: "<b>INFORMATION</b> (applies to Sunday karaoke events):<br><br>Dear friends!<br>Until 11.30 PM, you can sing songs popular only in your country.<br>After 11.30 PM, we switch to English-language best hits 🎤<br>Write down your songs that will bring everyone together<br>and turn INDEKS Club into one big party!",
-            btnBack: "⬅ Back",
+            dismissHelper: "Click outside to return ☝️",
             ytError: "Error while searching YT.",
             ytSelectHeader: "Select YouTube version:"
         }
@@ -314,7 +314,7 @@
         document.getElementById('birthdayNoticeText').innerHTML = d.birthdayNotice;
         document.getElementById('extraInfoText').innerHTML = d.extraInfo;
         
-        document.getElementById('backFromSearchBtn').textContent = d.btnBack;
+        document.getElementById('searchDismissHelper').textContent = d.dismissHelper;
 
         if (suggestionsBox.querySelector('.no-results')) {
             suggestionsBox.querySelector('.no-results').innerHTML = d.noResults;
@@ -362,8 +362,6 @@
     const successMsg = document.getElementById('successMsg');
     const successSummary = document.getElementById('successSummary'); 
     const redirectTimer = document.getElementById('redirectTimer');
-    
-    const backFromSearchBtn = document.getElementById('backFromSearchBtn');
 
     async function loadBaza() {
         try {
@@ -401,17 +399,10 @@
         }, 400);
     });
 
-    backFromSearchBtn.addEventListener('click', () => {
-        document.body.classList.remove('search-focus-mode');
-        suggestionsBox.style.display = 'none';
-        if (document.activeElement) document.activeElement.blur();
-        checkInputs();
-    });
-
     document.addEventListener('click', (e) => {
         if (isFocusing) return; 
         
-        if (!e.target.closest('#searchInputGroup') && e.target !== backFromSearchBtn) {
+        if (!e.target.closest('#searchInputGroup')) {
             document.body.classList.remove('search-focus-mode');
             suggestionsBox.style.display = 'none';
             checkInputs(); 
@@ -605,7 +596,7 @@
                         imie: imieInput.value.trim(), 
                         narodowosc: narodowoscInput.value.trim(),
                         kod: kodInput.value.trim().toUpperCase(),
-                        urodziny: false, // <-- Utrzymane dla bazy danych, mimo braku checkboxa
+                        urodziny: false, 
                         deviceId: currentDeviceId 
                     })
                 });
@@ -642,7 +633,6 @@
             } catch (error) {
                 isSending = false; 
                 submitBtn.innerHTML = d.btnErr;
-                // Awaryjny czerwony kolor w locie
                 const oldBg = submitBtn.style.backgroundColor;
                 submitBtn.style.backgroundColor = "var(--danger)";
                 submitBtn.style.color = "#fff";
