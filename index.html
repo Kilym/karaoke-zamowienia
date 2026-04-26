@@ -567,7 +567,7 @@
     imieInput.addEventListener('input', checkInputs);
     ytLinkInput.addEventListener('input', checkInputs);
 
-    submitBtn.addEventListener('click', (e) => {
+    submitBtn.addEventListener('click', async (e) => {
         isSending = true; 
         
         if (document.activeElement) document.activeElement.blur(); 
@@ -579,7 +579,6 @@
 
         void submitBtn.offsetHeight; 
 
-        setTimeout(async () => {
             
             let summaryHtml = `${d.sumPerformer} <b>${imieInput.value.trim()}</b><br>${d.sumSong} <b>${szukajInput.value.trim()}</b>`;
             if (ytLinkInput.value.trim()) summaryHtml += `<br>${d.sumYt}`;
@@ -644,7 +643,6 @@
                 }, 3000);
             }
 
-        }, 500); 
     });
 
     setLanguage('pl');
